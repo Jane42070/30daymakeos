@@ -22,9 +22,13 @@ struct BOOTINFO {
 
 void io_hlt(void);
 void io_cli(void);
+void io_sti(void);
 void io_out8(int port, int data);
 int io_load_eflags(void);
 void io_store_eflags(int eflags);
+void asm_inthandler21(void);
+void asm_inthandler27(void);
+void asm_inthandler2c(void);
 
 /** 装载段号寄存器函数
  *  装载中断记录表函数
@@ -33,6 +37,7 @@ void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
 
 /* graphic.c */
+
 void io_hlt(void);
 void io_cli(void);
 void io_out8(int port, int data);
@@ -96,10 +101,20 @@ void init_gdtidt(void);
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
 #define AR_CODE32_ER	0x409a
+// 中断处理属性
+#define AR_INTGATE32	0x008e
 
 /* init.c */
 
+/** 初始化 PIC */
 void init_pic(void);
+/* 接收来自PS/2键盘的中断 */
+void inthandler21(int *esp);
+/* 来自PS/2鼠标的中断 */
+void inthandler2c(int *esp);
+/* PIC0 电气原因造成的中断 */
+void inthandler27(int *esp);
+
 #define PIC0_ICW1		0x0020
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021

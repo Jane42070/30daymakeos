@@ -9,7 +9,15 @@ void HariMain(void)
 	int my = (binfo->scrny - 28 - 16) / 2;
 	unsigned char *s;
 
+	// 初始化16位颜色
 	init_palette();
+	// 初始化 全局段记录表，中断记录表
+	init_gdtidt();
+	// 初始化 PIC
+	init_pic();
+	// IDT/PIC 的初始化已经完成，开放 CPU 的中断
+	io_sti();
+
 
 	init_screen((unsigned char *)binfo->vram, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(mcursor, COL8_008484);
@@ -19,9 +27,10 @@ void HariMain(void)
 	putfont8_pos(binfo->vram, binfo->scrnx, 0, 40, COL8_FFFFFF, (unsigned char *)"CLAY");
 	putfont8_pos(binfo->vram, binfo->scrnx, 0, 92, COL8_FFFFFF, (unsigned char *)"HARIBOTE.SYS");
 
-	/** sprintf(s, "scrnx = { %d }", binfo->scrnx); */
-	/** putfont8_str(binfo->vram, binfo->scrnx, 100, 66, COL8_FFFFFF, s); */
-	for (;;) {
-		io_hlt();
-	}
+	// 开放PIC1和键盘中断(11111001)
+	io_out8(PIC0_IMR, 0xf9);
+	// 开放鼠标中断(11101111)
+	io_out8(PIC1_IMR, 0xef);
+
+	for (;;) { io_hlt(); }
 }
