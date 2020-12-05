@@ -27,6 +27,15 @@ void init_gdtidt(void)
 	}
 	load_idtr(LIMIT_IDT, ADR_IDT);
 
+	/* IDT 配置中断程序
+	 * 0x21 键盘中断
+	 * 0x27 鼠标中断
+	 * 0x2c 电气噪音中断
+	 * */
+	set_gatedesc(idt + 0x21, (int) asm_inthandler21, 2 * 8, AR_INTGATE32);
+	set_gatedesc(idt + 0x27, (int) asm_inthandler27, 2 * 8, AR_INTGATE32);
+	set_gatedesc(idt + 0x2c, (int) asm_inthandler2c, 2 * 8, AR_INTGATE32);
+
 	return;
 }
 
