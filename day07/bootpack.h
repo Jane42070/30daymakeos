@@ -109,7 +109,8 @@ void init_gdtidt(void);
 #define PORT_KEYDAT 0x0060
 
 struct KEYBUF {
-	unsigned char data, flag;
+	unsigned char data[32];
+	int next;
 };
 
 /** 初始化 PIC */

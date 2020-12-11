@@ -9,6 +9,7 @@ void HariMain(void)
 	char *mcursor;
 	int mx = (binfo->scrnx - 16) / 2; /* 屏幕 */
 	int my = (binfo->scrny - 28 - 16) / 2;
+	int i,j;
 	unsigned char *s;
 
 	// 初始化16位颜色
@@ -34,16 +35,19 @@ void HariMain(void)
 	// 开放鼠标中断(11101111)
 	io_out8(PIC1_IMR, 0xef);
 
+	// 储存键盘数据
 	for (;;) {
 		// 屏蔽其他中断
 		io_cli();
-		if (keybuf.flag == 0) {
+		if (keybuf.next == 0) {
 			// 接收中断并进入等待
 			io_stihlt();
 		} else {
-			keybuf.flag = 0;
+			keybuf.next--;
+			i = keybuf.data[0];
+			for (j = 0; j < keybuf.next; j++) keybuf.data[j] = keybuf.data[j + 1];
 			io_sti();
-			sprintf((char *)s, "%02X", keybuf.data);
+			sprintf((char *)s, "%02X", i);
 			boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
 			putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 		}
