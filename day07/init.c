@@ -1,5 +1,7 @@
 #include "bootpack.h"
 
+struct KEYBUF keybuf;
+
 void init_pic(void)
 /* PIC 初始化 */
 {

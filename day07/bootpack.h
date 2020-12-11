@@ -74,7 +74,6 @@ void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py
 #define COL8_848484		15 /* 15: 暗灰 */
 
 /* dsctbl.c */
-
 /** 段号记录 */
 struct SEGMENT_DESCRIPTOR {
 	short limit_low, base_low;
@@ -112,8 +111,6 @@ void init_gdtidt(void);
 struct KEYBUF {
 	unsigned char data, flag;
 };
-
-struct KEYBUF keybuf;
 
 /** 初始化 PIC */
 void init_pic(void);
