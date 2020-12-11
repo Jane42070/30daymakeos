@@ -39,13 +39,16 @@ void HariMain(void)
 	for (;;) {
 		// 屏蔽其他中断
 		io_cli();
-		if (keybuf.next == 0) {
+		if (keybuf.len == 0) {
 			// 接收中断并进入等待
 			io_stihlt();
 		} else {
-			keybuf.next--;
-			i = keybuf.data[0];
-			for (j = 0; j < keybuf.next; j++) keybuf.data[j] = keybuf.data[j + 1];
+			i = keybuf.data[keybuf.next_r];
+			keybuf.len--;
+			keybuf.next_r++;
+			if (keybuf.next_r == 32) {
+				keybuf.next_r = 0;
+			}
 			io_sti();
 			sprintf((char *)s, "%02X", i);
 			boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 16, 16);

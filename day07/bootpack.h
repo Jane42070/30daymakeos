@@ -108,9 +108,12 @@ void init_gdtidt(void);
 /* init.c */
 #define PORT_KEYDAT 0x0060
 
+// Circular linked list
+// Build a FIFO buffer
+// Prevent data transfer
 struct KEYBUF {
 	unsigned char data[32];
-	int next;
+	int next_r, next_w, len;
 };
 
 /** 初始化 PIC */
