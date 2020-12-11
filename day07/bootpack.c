@@ -1,5 +1,7 @@
 #include "bootpack.h"
 
+extern struct KEYBUF keybuf;
+
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
@@ -33,11 +35,12 @@ void HariMain(void)
 	io_out8(PIC1_IMR, 0xef);
 
 	for (;;) {
+		// 屏蔽其他中断
 		io_cli();
 		if (keybuf.flag == 0) {
+			// 接收中断并进入等待
 			io_stihlt();
-		}
-		else {
+		} else {
 			keybuf.flag = 0;
 			io_sti();
 			sprintf((char *)s, "%02X", keybuf.data);
