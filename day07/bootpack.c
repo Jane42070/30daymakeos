@@ -32,5 +32,17 @@ void HariMain(void)
 	// 开放鼠标中断(11101111)
 	io_out8(PIC1_IMR, 0xef);
 
-	for (;;) { io_hlt(); }
+	for (;;) {
+		io_cli();
+		if (keybuf.flag == 0) {
+			io_stihlt();
+		}
+		else {
+			keybuf.flag = 0;
+			io_sti();
+			sprintf((char *)s, "%02X", keybuf.data);
+			boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
+			putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
+		}
+	}
 }

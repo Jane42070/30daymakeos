@@ -4,4 +4,4 @@
 
 ## Progress
 - day06
-![dya06](./day06/6.png)
+![day06](./day06/6.png)
