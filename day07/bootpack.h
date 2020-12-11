@@ -23,6 +23,7 @@ struct BOOTINFO {
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
+void io_stihlt(void);
 int io_in8(int port);
 void io_out8(int port, int data);
 int io_load_eflags(void);
@@ -106,6 +107,13 @@ void init_gdtidt(void);
 #define AR_INTGATE32	0x008e
 
 /* init.c */
+#define PORT_KEYDAT 0x0060
+
+struct KEYBUF {
+	unsigned char data, flag;
+};
+
+struct KEYBUF keybuf;
 
 /** 初始化 PIC */
 void init_pic(void);

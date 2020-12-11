@@ -1,7 +1,5 @@
 #include "bootpack.h"
 
-#define PORT_KEYDAT 0x0060
-
 void init_pic(void)
 /* PIC 初始化 */
 {
@@ -39,15 +37,15 @@ void init_pic(void)
 void inthandler21(int *esp)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	unsigned char data, *s[4];
 	// 从键盘接收数据
 	/* 通知PIC的IRQ-01 已经受理完毕 */
 	io_out8(PIC0_OCW2, 0x61);
+	unsigned char data;
 	data = io_in8(PORT_KEYDAT);
-
-	sprintf(s, "%02X", data);
-	boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_000000, 0, 0, 16, 16);
-	putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
+	if (keybuf.flag == 0) {
+		keybuf.data = data;
+		keybuf.flag = 1;
+	}
 }
 
 /* 接收来自PS/2鼠标的中断 */
