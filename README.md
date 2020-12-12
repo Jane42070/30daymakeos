@@ -7,3 +7,4 @@
 ![day06](./day06/6.png)
 - day07 FIFO 与鼠标控制
 ![day07](./day07/7.png)
+- day08
