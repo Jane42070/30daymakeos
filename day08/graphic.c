@@ -84,10 +84,10 @@ void init_screen(unsigned char *vram, int x, int y)
  * y 起始 y 坐标
  * font 字符
  * */
-void putfont8(char *vram, int xsize, int x, int y, char c, char *font)
+void putfont8(unsigned char *vram, int xsize, int x, int y, char c, char *font)
 {
 	int i;
-	char *p, d /* data */;
+	unsigned char *p, d /* data */;
 	for (i = 0; i < 16; i++) {
 		p = vram + (y + i) * xsize + x;
 		d = font[i];
@@ -109,18 +109,18 @@ void putfont8(char *vram, int xsize, int x, int y, char c, char *font)
  * y 起始 y 坐标
  * c 宏定义颜色
  * s 目标字符串*/
-void putfont8_str(char *vram, int xsize, int x, int y, char c, unsigned char *s)
+void putfont8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s)
 {
 	extern char hankaku[4096];
-	for (; *s != 0 ; s++) {putfont8(vram, xsize, x, y, c, hankaku + *s * 16); x+=8;}
+	for (; *s != 0 ; s++) { putfont8(vram, xsize, x, y, c, hankaku + *s * 16); x+=8; }
 	return;
 }
 
 /* 根据位置显示字符串 */
-void putfont8_pos(char *vram, int xsize, int pos,int y, char c, unsigned char *s)
+void putfont8_pos(unsigned char *vram, int xsize, int pos,int y, char c, char *s)
 {
 	extern char hankaku[4096];
-	unsigned char *start = s;
+	char *start = s;
 	int len = 0;
 
 	for (; *start != 0 ; start++) { len+=8; }
@@ -162,7 +162,7 @@ void init_mouse_cursor8(unsigned char *mouse, char bc)
 }
 
 /** 放置鼠标函数 */
-void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize)
+void putblock8_8(unsigned char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize)
 {
 	int x, y;
 	for (y = 0; y < pysize; y++) {
