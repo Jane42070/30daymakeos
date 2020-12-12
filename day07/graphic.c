@@ -129,7 +129,7 @@ void putfont8_pos(char *vram, int xsize, int pos,int y, char c, unsigned char *s
 }
 
 /** 鼠标指针绘制 */
-void init_mouse_cursor8(char *mouse, char bc)
+void init_mouse_cursor8(unsigned char *mouse, char bc)
 {
 	static char cursor[16][16] = {
 		"1111............",
@@ -162,7 +162,7 @@ void init_mouse_cursor8(char *mouse, char bc)
 }
 
 /** 放置鼠标函数 */
-void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buf, int bxsize)
+void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize)
 {
 	int x, y;
 	for (y = 0; y < pysize; y++) {

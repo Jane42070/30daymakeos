@@ -1,8 +1,6 @@
 /* asmhead.nas */
-
 #include <stdio.h>
 #include <string.h>
-
 /** 储存启动信息
  * cyls 柱面
  * leds 指示灯状态
@@ -53,8 +51,8 @@ void init_screen(unsigned char *vram, int x, int y);
 void putfont8(char *vram, int xsize, int x, int y, char c, char *font);
 void putfont8_str(char *vram, int xsize, int x, int y, char c, unsigned char *s);
 void putfont8_pos(char *vram, int xsize, int pos,int y, char c, unsigned char *s);
-void init_mouse_cursor8(char *mouse, char bc);
-void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, char *buf, int bxsize);
+void init_mouse_cursor8(unsigned char *mouse, char bc);
+void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize);
 
 #define COL8_000000		0  /*  0: 黑 */
 #define COL8_FF0000		1  /*  1: 亮红 */
@@ -105,17 +103,24 @@ void init_gdtidt(void);
 // 中断处理属性
 #define AR_INTGATE32	0x008e
 
-/* init.c */
-#define PORT_KEYDAT 0x0060
-
-// Circular linked list
-// Build a FIFO buffer
-// Prevent data transfer
-struct KEYBUF {
-	unsigned char data[32];
-	int next_r, next_w, len;
+/* fifo.c */
+struct FIFO8 {
+	unsigned char *buf;
+	int w, r, size, free, flags;
 };
 
+#define FLAGS_OVERRUN	0x0001
+/** 初始化FIFO缓冲区 */
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
+/** 向FIFO存放数据 */
+int fifo8_put(struct FIFO8 *fifo, unsigned char data);
+/** 向FIFO读取数据 */
+int fifo8_get(struct FIFO8 *fifo);
+/** 报告FIFO状态 */
+int fifo8_status(struct FIFO8 *fifo);
+
+/* init.c */
+#define PORT_KEYDAT 0x0060
 /** 初始化 PIC */
 void init_pic(void);
 /* 接收来自PS/2键盘的中断 */
