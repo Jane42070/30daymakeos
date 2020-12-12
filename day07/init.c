@@ -52,7 +52,6 @@ void inthandler21(int *esp)
 void inthandler2c(int *esp)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_000000, 0, 0, 32 * 8 - 1, 15);
 	putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, (unsigned char *)"INT 2C (IRQ-12) : PS/2 Mouse");
 	for (;;) { io_hlt(); }
 }
