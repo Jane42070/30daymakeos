@@ -11,10 +11,10 @@ void HariMain(void)
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
 	extern char hankaku[4096];
 	// Define FIFO buffer
-	unsigned char s[40], mcursor[256], keybuf[32], mousebuf[128];
+	unsigned char s[40], mcursor[256], keybuf[32], mousebuf[128], mouse_dbuf[3], mouse_phase;
 	int mx = (binfo->scrnx - 16) / 2; /* 屏幕 */
 	int my = (binfo->scrny - 28 - 16) / 2;
-	int i,j;
+	int i, j;
 
 	// 初始化16位颜色
 	init_palette();
@@ -49,6 +49,8 @@ void HariMain(void)
 
 	init_keyboard();
 	enable_mouse();
+	// 进入到等待鼠标就绪的状态 (0xfa)
+	mouse_phase = 0;
 
 	// 储存键盘数据
 	for (;;) {
@@ -68,9 +70,26 @@ void HariMain(void)
 			{
 				i = fifo8_get(&mousefifo);
 				io_sti();
-				sprintf((char *)s, "%02X", i);
-				boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16, 48);
-				putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+				switch (mouse_phase) {
+					case 1:
+						mouse_dbuf[0] = i;
+						mouse_phase = 2;
+						break;
+					case 2:
+						mouse_dbuf[1] = i;
+						mouse_phase = 3;
+						break;
+					case 3:
+						mouse_dbuf[2] = i;
+						mouse_phase = 1;
+						sprintf((char *)s, "%02X %02X %02X", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
+						boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 8 * 8 - 1, 48);
+						putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+						break;
+					default:
+						// 等待鼠标就绪
+						if (i == 0xfa) mouse_phase = 1;
+				}
 			}
 		}
 	}
