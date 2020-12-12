@@ -7,4 +7,5 @@
 ![day06](./day06/6.png)
 - day07 FIFO 与鼠标控制
 ![day07](./day07/7.png)
-- day08
+- day08 鼠标控制与 32 位模式切换
+![day08](./day08/8.png)
