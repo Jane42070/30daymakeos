@@ -2,16 +2,21 @@
 extern struct FIFO8 keyfifo;
 extern struct FIFO8 mousefifo;
 
+struct MOUSE_DEC {
+	unsigned char buf[3], phase;
+} mdec;
+
 void wait_KBC_sendready(void);
 void init_keyboard(void);
-void enable_mouse(void);
+void enable_mouse(struct MOUSE_DEC *mdec);
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
 
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
 	extern char hankaku[4096];
 	// Define FIFO buffer
-	unsigned char s[40], mcursor[256], keybuf[32], mousebuf[128], mouse_dbuf[3], mouse_phase;
+	unsigned char s[40], mcursor[256], keybuf[32], mousebuf[128];
 	int mx = (binfo->scrnx - 16) / 2; /* 屏幕 */
 	int my = (binfo->scrny - 28 - 16) / 2;
 	int i, j;
@@ -48,9 +53,7 @@ void HariMain(void)
 	fifo8_init(&mousefifo, 128, mousebuf);
 
 	init_keyboard();
-	enable_mouse();
-	// 进入到等待鼠标就绪的状态 (0xfa)
-	mouse_phase = 0;
+	enable_mouse(&mdec);
 
 	// 储存键盘数据
 	for (;;) {
@@ -70,25 +73,10 @@ void HariMain(void)
 			{
 				i = fifo8_get(&mousefifo);
 				io_sti();
-				switch (mouse_phase) {
-					case 1:
-						mouse_dbuf[0] = i;
-						mouse_phase = 2;
-						break;
-					case 2:
-						mouse_dbuf[1] = i;
-						mouse_phase = 3;
-						break;
-					case 3:
-						mouse_dbuf[2] = i;
-						mouse_phase = 1;
-						sprintf((char *)s, "%02X %02X %02X", mouse_dbuf[0], mouse_dbuf[1], mouse_dbuf[2]);
-						boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 8 * 8 - 1, 48);
-						putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
-						break;
-					default:
-						// 等待鼠标就绪
-						if (i == 0xfa) mouse_phase = 1;
+				if (mouse_decode(&mdec, i) != 0) {
+					sprintf((char *)s, "%02X %02X %02X", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
+					boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 8 * 8 - 1, 48);
+					putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 				}
 			}
 		}
@@ -114,7 +102,7 @@ void init_keyboard(void)
 	io_out8(PORT_KEYDAT, KBC_MODE);
 }
 
-void enable_mouse(void)
+void enable_mouse(struct MOUSE_DEC *mdec)
 {
 	/** 激活鼠标 */
 	wait_KBC_sendready();
@@ -124,4 +112,27 @@ void enable_mouse(void)
 	wait_KBC_sendready();
 	// 发送鼠标命令
 	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE); /** 如果成功，键盘电路会返回ACK(0xfa) */
+	mdec->phase = 0;
+}
+
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
+{
+	switch (mdec->phase) {
+		case 1:
+			mdec->buf[0] = data;
+			mdec->phase = 2;
+			return 0;
+		case 2:
+			mdec->buf[1] = data;
+			mdec->phase = 3;
+			return 0;
+		case 3:
+			mdec->buf[2] = data;
+			mdec->phase = 1;
+			return 1;
+		default:
+			// 等待鼠标就绪 (0xfa)
+			if (data == 0xfa) mdec->phase = 1;
+	}
+	return -1;
 }
