@@ -1,6 +1,9 @@
 #include "bootpack.h"
-// 初始化键盘缓冲区
+// 键盘缓冲区
 struct FIFO8 keyfifo;
+// 鼠标缓冲区
+struct FIFO8 mousefifo;
+unsigned char data;
 
 void init_pic(void)
 /* PIC 初始化 */
@@ -42,7 +45,6 @@ void inthandler21(int *esp)
 	// 从键盘接收数据
 	/* 通知PIC的IRQ-01 已经受理完毕 */
 	io_out8(PIC0_OCW2, 0x61);
-	unsigned char data;
 	data = io_in8(PORT_KEYDAT);
 	// FIFO
 	fifo8_put(&keyfifo, data);
@@ -52,8 +54,13 @@ void inthandler21(int *esp)
 void inthandler2c(int *esp)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, (unsigned char *)"INT 2C (IRQ-12) : PS/2 Mouse");
-	for (;;) { io_hlt(); }
+	// 从鼠标接收数据
+	/* 通知 PIC1 IRQ-12 的受理已经完成 */
+	io_out8(PIC1_OCW2, 0x64);
+	/* 通知 PIC0 IRQ-02 的受理已经完成 */
+	io_out8(PIC0_OCW2, 0x62);
+	data = io_in8(PORT_KEYDAT);
+	fifo8_put(&mousefifo, data);
 }
 
 /* PIC0中断的不完整策略 */
