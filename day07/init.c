@@ -1,6 +1,6 @@
 #include "bootpack.h"
-
-struct KEYBUF keybuf;
+// 初始化键盘缓冲区
+struct FIFO8 keyfifo;
 
 void init_pic(void)
 /* PIC 初始化 */
@@ -45,14 +45,7 @@ void inthandler21(int *esp)
 	unsigned char data;
 	data = io_in8(PORT_KEYDAT);
 	// FIFO
-	if (keybuf.len < 32) {
-		keybuf.data[keybuf.next_w] = data;
-		keybuf.len++;
-		keybuf.next_w++;
-		if (keybuf.next_w == 32) {
-			keybuf.next_w = 0;
-		}
-	}
+	fifo8_put(&keyfifo, data);
 }
 
 /* 接收来自PS/2鼠标的中断 */
