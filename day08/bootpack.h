@@ -10,9 +10,8 @@
 struct BOOTINFO {
 	char cyls, leds, vmode, reserve;
 	short scrnx, scrny;
-	char *vram;
+	unsigned char *vram;
 };
-
 // 定义启动信息存放的内存地址
 #define ADR_BOOTINFO 0x00000ff0
 
@@ -46,11 +45,11 @@ void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram, int xsize, unsigned char c, int x0, int y0, int x1, int y1);
 void init_screen(unsigned char *vram, int x, int y);
-void putfont8(char *vram, int xsize, int x, int y, char c, char *font);
-void putfont8_str(char *vram, int xsize, int x, int y, char c, unsigned char *s);
-void putfont8_pos(char *vram, int xsize, int pos,int y, char c, unsigned char *s);
+void putfont8(unsigned char *vram, int xsize, int x, int y, char c, char *font);
+void putfont8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s);
+void putfont8_pos(unsigned char *vram, int xsize, int pos,int y, char c, char *s);
 void init_mouse_cursor8(unsigned char *mouse, char bc);
-void putblock8_8(char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize);
+void putblock8_8(unsigned char *vram, int vxsize, int pxsize, int pysize, int px0, int py0, unsigned char *buf, int bxsize);
 
 #define COL8_000000		0  /*  0: 黑 */
 #define COL8_FF0000		1  /*  1: 亮红 */

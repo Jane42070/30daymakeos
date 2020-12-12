@@ -4,6 +4,8 @@ extern struct FIFO8 mousefifo;
 
 struct MOUSE_DEC {
 	unsigned char buf[3], phase;
+	// 鼠标移动、按键状态
+	int x, y, btn;
 } mdec;
 
 void wait_KBC_sendready(void);
@@ -13,10 +15,12 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
 
 void HariMain(void)
 {
+	// 结构体指针指向储存系统信息的地址
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
 	extern char hankaku[4096];
 	// Define FIFO buffer
-	unsigned char s[40], mcursor[256], keybuf[32], mousebuf[128];
+	unsigned char mcursor[256], keybuf[32], mousebuf[128];
+	char s[40];
 	int mx = (binfo->scrnx - 16) / 2; /* 屏幕 */
 	int my = (binfo->scrny - 28 - 16) / 2;
 	int i, j;
@@ -35,13 +39,10 @@ void HariMain(void)
 	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	sprintf((char *)s, "(%d, %d)", mx, my);
+
 	putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
-
-
-
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 30, COL8_FFFFFF, (unsigned char *)"hello world!");
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 50, COL8_FFFFFF, (unsigned char *)"CLAY");
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 92, COL8_FFFFFF, (unsigned char *)"HARIBOTE.SYS");
+	putfont8_pos(binfo->vram, binfo->scrnx, 0, 50, COL8_FFFFFF, "CLAY");
+	putfont8_pos(binfo->vram, binfo->scrnx, 0, 92, COL8_FFFFFF, "HARIBOTE.SYS");
 
 	// 开放PIC1和键盘中断(11111001)
 	io_out8(PIC0_IMR, 0xf9);
@@ -65,7 +66,7 @@ void HariMain(void)
 			if (fifo8_status(&keyfifo) != 0) {
 				i = fifo8_get(&keyfifo);
 				io_sti();
-				sprintf((char *)s, "%02X", i);
+				sprintf(s, "%02X", i);
 				boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
 				putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 			}
@@ -74,9 +75,29 @@ void HariMain(void)
 				i = fifo8_get(&mousefifo);
 				io_sti();
 				if (mouse_decode(&mdec, i) != 0) {
-					sprintf((char *)s, "%02X %02X %02X", mdec.buf[0], mdec.buf[1], mdec.buf[2]);
-					boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 8 * 8 - 1, 48);
+					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
+					if ((mdec.btn & 0x01) != 0) s[1] = 'L' ;
+					if ((mdec.btn & 0x02) != 0) s[3] = 'R' ;
+					if ((mdec.btn & 0x04) != 0) s[2] = 'C' ;
+					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
 					putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+					// 鼠标移动
+					// 隐藏鼠标
+					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15);
+					mx += mdec.x;
+					my += mdec.y;
+					// 防止超出屏幕
+					if (mx < 0) mx = 0;
+					if (my < 0) my = 0;
+					if (mx > binfo->scrnx - 16) mx = binfo->scrnx - 16;
+					if (my > binfo->scrny - 16) my = binfo->scrny - 16;
+					sprintf(s, "(%3d %3d)", mx, my);
+					// 隐藏坐标
+					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
+					// 显示坐标
+					putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+					// 描绘鼠标
+					putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 				}
 			}
 		}
@@ -118,17 +139,28 @@ void enable_mouse(struct MOUSE_DEC *mdec)
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
 {
 	switch (mdec->phase) {
+		/** 等待鼠标发送第一个字节 */
 		case 1:
 			mdec->buf[0] = data;
 			mdec->phase = 2;
 			return 0;
+		/** 等待鼠标发送第二个字节 */
 		case 2:
 			mdec->buf[1] = data;
 			mdec->phase = 3;
 			return 0;
+		/** 等待鼠标发送第三个字节
+		 *	并处理所有数据 */
 		case 3:
 			mdec->buf[2] = data;
 			mdec->phase = 1;
+			mdec->btn = mdec->buf[0] & 0x07;
+			mdec->x = mdec->buf[1];
+			mdec->y = mdec->buf[2];
+			if ((mdec->buf[0] & 0x10) != 0) mdec->x |= 0xffffff00;
+			if ((mdec->buf[0] & 0x20) != 0) mdec->y |= 0xffffff00;
+			// 鼠标的y方向与画面符号相反
+			mdec->y = - mdec->y;
 			return 1;
 		default:
 			// 等待鼠标就绪 (0xfa)
