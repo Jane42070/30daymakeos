@@ -1,6 +1,6 @@
 # 30days make a os
 - just note my daily practice
-- day01 ~ day02 are missing because this repo was created at the very 5 day
+- day01 ~ day04 were missing because this repo was created at the very 5 day
 
 ## Progress
 - day06 分割编译与中断处理
@@ -9,3 +9,4 @@
 ![day07](./day07/7.png)
 - day08 鼠标控制与 32 位模式切换
 ![day08](./day08/8.png)
+- day09 内存管理
