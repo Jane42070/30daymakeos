@@ -4,7 +4,7 @@ extern struct FIFO8 mousefifo;
 
 struct MOUSE_DEC {
 	unsigned char buf[3], phase;
-	// Êó±êÒÆ¶¯¡¢°´¼ü×´Ì¬
+	// é¼ æ ‡ç§»åŠ¨ã€æŒ‰é”®çŠ¶æ€
 	int x, y, btn;
 } mdec;
 
@@ -15,25 +15,31 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
 
 void HariMain(void)
 {
-	// ½á¹¹ÌåÖ¸ÕëÖ¸Ïò´¢´æÏµÍ³ĞÅÏ¢µÄµØÖ·
+	// ç»“æ„ä½“æŒ‡é’ˆæŒ‡å‘å‚¨å­˜ç³»ç»Ÿä¿¡æ¯çš„åœ°å€
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
 	extern char hankaku[4096];
 	// Define FIFO buffer
 	unsigned char mcursor[256], keybuf[32], mousebuf[128];
 	char s[40];
-	int mx = (binfo->scrnx - 16) / 2; /* ÆÁÄ» */
+	int mx = (binfo->scrnx - 16) / 2; /* å±å¹• */
 	int my = (binfo->scrny - 28 - 16) / 2;
 	int i, j;
 
-	// ³õÊ¼»¯16Î»ÑÕÉ«
-	init_palette();
-	// ³õÊ¼»¯ È«¾Ö¶Î¼ÇÂ¼±í£¬ÖĞ¶Ï¼ÇÂ¼±í
+	// åˆå§‹åŒ– å…¨å±€æ®µè®°å½•è¡¨ï¼Œä¸­æ–­è®°å½•è¡¨
 	init_gdtidt();
-	// ³õÊ¼»¯ PIC
+	// åˆå§‹åŒ– PIC
 	init_pic();
-	// IDT/PIC µÄ³õÊ¼»¯ÒÑ¾­Íê³É£¬¿ª·Å CPU µÄÖĞ¶Ï
+	// IDT/PIC çš„åˆå§‹åŒ–å·²ç»å®Œæˆï¼Œå¼€æ”¾ CPU çš„ä¸­æ–­
 	io_sti();
 
+	// å¼€æ”¾PIC1å’Œé”®ç›˜ä¸­æ–­(11111001)
+	io_out8(PIC0_IMR, 0xf9);
+	// å¼€æ”¾é¼ æ ‡ä¸­æ–­(11101111)
+	io_out8(PIC1_IMR, 0xef);
+
+	// å°½å¿«çš„å¼€æ”¾ä¸­æ–­æ¥æ”¶æ•°æ®
+	// æ‰€ä»¥åˆå§‹åŒ–è°ƒè‰²æ¿åº”æ”¾åœ¨å¼€æ”¾ä¸­æ–­ä¹‹å
+	init_palette();
 	init_screen((unsigned char *)binfo->vram, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(mcursor, COL8_008484);
 	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
@@ -43,24 +49,19 @@ void HariMain(void)
 	putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
 	putfont8_pos(binfo->vram, binfo->scrnx, 0, 50, COL8_FFFFFF, "CLAY");
 	putfont8_pos(binfo->vram, binfo->scrnx, 0, 92, COL8_FFFFFF, "HARIBOTE.SYS");
-
-	// ¿ª·ÅPIC1ºÍ¼üÅÌÖĞ¶Ï(11111001)
-	io_out8(PIC0_IMR, 0xf9);
-	// ¿ª·ÅÊó±êÖĞ¶Ï(11101111)
-	io_out8(PIC1_IMR, 0xef);
-	// ³õÊ¼»¯keybuf»º³åÇø
+	// åˆå§‹åŒ–keybufç¼“å†²åŒº
 	fifo8_init(&keyfifo, 32, keybuf);
-	// ³õÊ¼»¯mousebuf»º³åÇø
+	// åˆå§‹åŒ–mousebufç¼“å†²åŒº
 	fifo8_init(&mousefifo, 128, mousebuf);
 
 	init_keyboard();
 	enable_mouse(&mdec);
 
-	// ´¢´æ¼üÅÌÊı¾İ
+	// å‚¨å­˜é”®ç›˜æ•°æ®
 	for (;;) {
-		// ÆÁ±ÎÆäËûÖĞ¶Ï
+		// å±è”½å…¶ä»–ä¸­æ–­
 		io_cli();
-			// ½ÓÊÕÖĞ¶Ï²¢½øÈëµÈ´ı
+			// æ¥æ”¶ä¸­æ–­å¹¶è¿›å…¥ç­‰å¾…
 		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0) { io_stihlt(); }
 		else {
 			if (fifo8_status(&keyfifo) != 0) {
@@ -81,22 +82,22 @@ void HariMain(void)
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C' ;
 					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
 					putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
-					// Êó±êÒÆ¶¯
-					// Òş²ØÊó±ê
+					// é¼ æ ‡ç§»åŠ¨
+					// éšè—é¼ æ ‡
 					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15);
 					mx += mdec.x;
 					my += mdec.y;
-					// ·ÀÖ¹³¬³öÆÁÄ»
+					// é˜²æ­¢è¶…å‡ºå±å¹•
 					if (mx < 0) mx = 0;
 					if (my < 0) my = 0;
 					if (mx > binfo->scrnx - 16) mx = binfo->scrnx - 16;
 					if (my > binfo->scrny - 16) my = binfo->scrny - 16;
 					sprintf(s, "(%3d %3d)", mx, my);
-					// Òş²Ø×ø±ê
+					// éšè—åæ ‡
 					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
-					// ÏÔÊ¾×ø±ê
+					// æ˜¾ç¤ºåæ ‡
 					putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
-					// Ãè»æÊó±ê
+					// æç»˜é¼ æ ‡
 					putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 				}
 			}
@@ -106,51 +107,51 @@ void HariMain(void)
 
 void wait_KBC_sendready(void)
 {
-	/** µÈ´ı¼üÅÌ¿ØÖÆµçÂ·×¼±¸Íê±Ï */
+	/** ç­‰å¾…é”®ç›˜æ§åˆ¶ç”µè·¯å‡†å¤‡å®Œæ¯• */
 	for(;;) { if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) { break; } }
 }
 
 void init_keyboard(void)
 {
-	/** ³õÊ¼»¯¼üÅÌ¿ØÖÆµçÂ·
-	 *  Êó±ê¿ØÖÆµçÂ·¼¯³ÉÔÚ¼üÅÌ¿ØÖÆµçÂ·ÉÏ */
+	/** åˆå§‹åŒ–é”®ç›˜æ§åˆ¶ç”µè·¯
+	 *  é¼ æ ‡æ§åˆ¶ç”µè·¯é›†æˆåœ¨é”®ç›˜æ§åˆ¶ç”µè·¯ä¸Š */
 	wait_KBC_sendready();
-	// ¶ÔÊó±ê·¢ËÍÄ£Ê½Éè¶¨Ö¸Áî 0x60
+	// å¯¹é¼ æ ‡å‘é€æ¨¡å¼è®¾å®šæŒ‡ä»¤ 0x60
 	io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);
-	// µÈ´ıµçÂ·ÏìÓ¦
+	// ç­‰å¾…ç”µè·¯å“åº”
 	wait_KBC_sendready();
-	// ¿ªÆôÊó±êÄ£Ê½ 0x47
+	// å¼€å¯é¼ æ ‡æ¨¡å¼ 0x47
 	io_out8(PORT_KEYDAT, KBC_MODE);
 }
 
 void enable_mouse(struct MOUSE_DEC *mdec)
 {
-	/** ¼¤»îÊó±ê */
+	/** æ¿€æ´»é¼ æ ‡ */
 	wait_KBC_sendready();
-	// ¶Ô¼üÅÌµçÂ··¢ËÍÖ¸Áî 0xd4
+	// å¯¹é”®ç›˜ç”µè·¯å‘é€æŒ‡ä»¤ 0xd4
 	io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
-	// µÈ´ıµçÂ·ÏìÓ¦
+	// ç­‰å¾…ç”µè·¯å“åº”
 	wait_KBC_sendready();
-	// ·¢ËÍÊó±êÃüÁî
-	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE); /** Èç¹û³É¹¦£¬¼üÅÌµçÂ·»á·µ»ØACK(0xfa) */
+	// å‘é€é¼ æ ‡å‘½ä»¤
+	io_out8(PORT_KEYDAT, MOUSECMD_ENABLE); /** å¦‚æœæˆåŠŸï¼Œé”®ç›˜ç”µè·¯ä¼šè¿”å›ACK(0xfa) */
 	mdec->phase = 0;
 }
 
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
 {
 	switch (mdec->phase) {
-		/** µÈ´ıÊó±ê·¢ËÍµÚÒ»¸ö×Ö½Ú */
+		/** ç­‰å¾…é¼ æ ‡å‘é€ç¬¬ä¸€ä¸ªå­—èŠ‚ */
 		case 1:
 			mdec->buf[0] = data;
 			mdec->phase = 2;
 			return 0;
-		/** µÈ´ıÊó±ê·¢ËÍµÚ¶ş¸ö×Ö½Ú */
+		/** ç­‰å¾…é¼ æ ‡å‘é€ç¬¬äºŒä¸ªå­—èŠ‚ */
 		case 2:
 			mdec->buf[1] = data;
 			mdec->phase = 3;
 			return 0;
-		/** µÈ´ıÊó±ê·¢ËÍµÚÈı¸ö×Ö½Ú
-		 *	²¢´¦ÀíËùÓĞÊı¾İ */
+		/** ç­‰å¾…é¼ æ ‡å‘é€ç¬¬ä¸‰ä¸ªå­—èŠ‚
+		 *	å¹¶å¤„ç†æ‰€æœ‰æ•°æ® */
 		case 3:
 			mdec->buf[2] = data;
 			mdec->phase = 1;
@@ -159,11 +160,11 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
 			mdec->y = mdec->buf[2];
 			if ((mdec->buf[0] & 0x10) != 0) mdec->x |= 0xffffff00;
 			if ((mdec->buf[0] & 0x20) != 0) mdec->y |= 0xffffff00;
-			// Êó±êµÄy·½ÏòÓë»­Ãæ·ûºÅÏà·´
+			// é¼ æ ‡çš„yæ–¹å‘ä¸ç”»é¢ç¬¦å·ç›¸å
 			mdec->y = - mdec->y;
 			return 1;
 		default:
-			// µÈ´ıÊó±ê¾ÍĞ÷ (0xfa)
+			// ç­‰å¾…é¼ æ ‡å°±ç»ª (0xfa)
 			if (data == 0xfa) mdec->phase = 1;
 	}
 	return -1;
