@@ -1,5 +1,10 @@
 #include "bootpack.h"
 
+#define EFLAGS_AC_BIT		0x00040000
+#define CR0_CACHE_DISABLE	0x60000000
+
+unsigned int memtest(unsigned int start, unsigned int end);
+
 void HariMain(void)
 {
 	// 结构体指针指向储存系统信息的地址
@@ -35,10 +40,13 @@ void HariMain(void)
 	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	sprintf((char *)s, "(%d, %d)", mx, my);
-
 	putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 50, COL8_FFFFFF, "CLAY");
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 92, COL8_FFFFFF, "HARIBOTE.SYS");
+
+	putfont8_pos(binfo->vram, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
+
+	i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
+	sprintf(s, "memory %dMB", i);
+	putfont8_pos(binfo->vram, binfo->scrnx, 0, 46, COL8_FFFFFF, s);
 	// 初始化keybuf缓冲区
 	fifo8_init(&keyfifo, 32, keybuf);
 	// 初始化mousebuf缓冲区
@@ -93,4 +101,45 @@ void HariMain(void)
 			}
 		}
 	}
+}
+
+unsigned int memtest(unsigned int start, unsigned int end)
+{
+	// CPU 架构 >= 486 才有高速缓存
+	// 486CPU 的 EFLAGS寄存器 18 位存储着AC标志位
+	// 386CPU 这位为 0
+	char flg486 = 0;
+	unsigned int eflg, cr0, i;
+
+	/* 确认CPU是386还是486以上 */
+	eflg = io_load_eflags();
+	/* AC-bit = 1 */
+	eflg |= EFLAGS_AC_BIT;
+	io_store_eflags(eflg);
+	eflg = io_load_eflags();
+	// 如果是 386，即使设置AC=1，AC的值还是会回到 0
+	if ((eflg & EFLAGS_AC_BIT) != 0) { flg486 = 1; }
+	/* AC-bit = 1 */
+	// 取反
+	eflg &= ~EFLAGS_AC_BIT;
+	io_store_eflags(eflg);
+
+	// 禁止缓存
+	// 对CR0寄存器操作
+	if (flg486 != 0) {
+		cr0 = load_cr0();
+		cr0 |= CR0_CACHE_DISABLE;
+		store_cr0(cr0);
+	}
+
+	i = memtest_sub(start, end);
+
+	// 允许缓存
+	if (flg486 != 0) {
+		cr0 = load_cr0();
+		cr0 &= ~CR0_CACHE_DISABLE;
+		store_cr0(cr0);
+	}
+
+	return i;
 }
