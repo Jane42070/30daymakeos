@@ -138,6 +138,7 @@ void inthandler27(int *esp);
 void inthandler21(int *esp);
 void wait_KBC_sendready(void);
 void init_keyboard(void);
+extern struct FIFO8 keyfifo, mousefifo;
 
 /* mouse.c */
 #define KEYCMD_SENDTO_MOUSE		0xd4
@@ -151,3 +152,4 @@ struct MOUSE_DEC {
 void inthandler2c(int *esp);
 void enable_mouse(struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
+extern struct MOUSE_DEC mdec;
