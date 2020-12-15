@@ -78,7 +78,7 @@ void sheet_refresh(struct SHTCTL *ctl)
  * 如果 height 对于 ctl->top 过高，则设置 height 为 ctl->top 最高的窗口
  * 如果 height 过低，则设置为隐藏状态 height = -1
  * 将窗口的层级高度赋值 sht->height
- * 如果 old > height 窗口比以前低，然后再判断 height 为显示还是 = -1 隐藏，做相应的处理
+ * 如果 old > height 比之前低，然后再判断 height 为显示还是 = -1 隐藏，做相应的处理
  * 如果 old < height 则是将窗口的层级高度向前移动，其他窗口做相应的处理
  * */
 void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
