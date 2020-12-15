@@ -152,6 +152,8 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 unsigned int memman_alloc_4k(struct MEMMAN *man, unsigned int size)
 {
 	unsigned int a;
+	// 向下舍入运算
+	// if size > 0x?????000, size += 0xfff
 	size = (size + 0xfff) & 0xfffff000;
 	a = memman_alloc(man, size);
 	return a;
