@@ -54,7 +54,7 @@ void HariMain(void)
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfont8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
 	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
-	sheet_refresh(shtctl);
+	sheet_refresh(shtctl, sht_bak, 0, 0, binfo->scrnx, 80);
 
 	for (;;) {
 		// 屏蔽其他中断
@@ -68,7 +68,7 @@ void HariMain(void)
 				sprintf(s, "%02X", i);
 				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
 				putfont8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
-				sheet_refresh(shtctl);
+				sheet_refresh(shtctl, sht_bak, 0, 0, 16, 16);
 			}
 			else if (fifo8_status(&mousefifo) != 0)
 			{
@@ -96,6 +96,7 @@ void HariMain(void)
 					putfont8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
+					sheet_refresh(shtctl, sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
 					sheet_slide(shtctl, sht_mouse, mx, my);
 				}
 			}
