@@ -3,7 +3,15 @@
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
+	// 内存管理
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	// 图层管理
+	struct SHTCTL *shtctl;
+	// 图层背景，鼠标
+	struct SHEET *sht_bak, *sht_mouse;
+	// 定义背景缓冲区、鼠标缓冲区
+	unsigned char *buf_back, buf_mouse[256];
+
 	unsigned int memtotal;
 	char s[40];
 	unsigned char mcursor[256], keybuf[32], mousebuf[128];		// Define FIFO buffer
@@ -25,14 +33,28 @@ void HariMain(void)
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 
 	init_palette();
-	init_screen(binfo->vram, binfo->scrnx, binfo->scrny);
+	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
+	// 分配图层
+	sht_bak = sheet_alloc(shtctl);
+	sht_mouse = sheet_alloc(shtctl);
+	// 分配内存
+	buf_back = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
+	sheet_setbuf(sht_bak, buf_back, binfo->scrnx, binfo->scrny, -1);	// 没有透明色
+	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);	// 透明色号 99
+	init_screen(buf_back, binfo->scrnx, binfo->scrny);
+	init_mouse_cursor8(buf_mouse, 99);	// 背景色号 99
+	sheet_slide(shtctl, sht_bak, 0, 0);
+
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
-	init_mouse_cursor8(mcursor, COL8_008484);
-	putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
+	sheet_slide(shtctl, sht_mouse, mx, my);
+	sheet_updown(shtctl, sht_bak, 0);
+	sheet_updown(shtctl, sht_mouse, 1);
+	// putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfont8_str(binfo->vram, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
-	putfont8_pos(binfo->vram, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
+	putfont8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
+	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
+	sheet_refresh(shtctl);
 
 	for (;;) {
 		// 屏蔽其他中断
@@ -44,8 +66,9 @@ void HariMain(void)
 				i = fifo8_get(&keyfifo);
 				io_sti();
 				sprintf(s, "%02X", i);
-				boxfill8((unsigned char *)binfo->vram, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
-				putfont8_str(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
+				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
+				putfont8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
+				sheet_refresh(shtctl);
 			}
 			else if (fifo8_status(&mousefifo) != 0)
 			{
@@ -56,11 +79,9 @@ void HariMain(void)
 					if ((mdec.btn & 0x01) != 0) s[1] = 'L';
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
-					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
-					putfont8_str(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
+					putfont8_str(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 					// 鼠标移动
-					// 隐藏鼠标
-					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, mx, my, mx + 15, my + 15);
 					mx += mdec.x;
 					my += mdec.y;
 					// 防止超出屏幕
@@ -70,11 +91,12 @@ void HariMain(void)
 					if (my > binfo->scrny - 16) my = binfo->scrny - 16;
 					sprintf(s, "(%3d %3d)", mx, my);
 					// 隐藏坐标
-					boxfill8(binfo->vram, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
+					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
 					// 显示坐标
-					putfont8_str(binfo->vram, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+					putfont8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
 					// 描绘鼠标
-					putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
+					// 包含 sheet_refresh
+					sheet_slide(shtctl, sht_mouse, mx, my);
 				}
 			}
 		}

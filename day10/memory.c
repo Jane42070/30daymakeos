@@ -82,7 +82,21 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size)
 	return 0;
 }
 
-// 释放内存
+/* 释放内存
+ * int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
+ * 内存管理结构体，释放的地址，释放的大小
+ * 用 for 循环遍历内存段，判断要释放的地址在哪个段的起始地址之前，并记录下段号 i
+ * 如果没找到（i = 0），则添加失败释放内存的记录（逻辑上几乎不可能），man->losts++; man->lostsize += size
+ * 如果找到（i > 0），则判断前一个段的末尾是否和释放的地址（addr）匹配，如果匹配，则可以与前面的段归纳到一起;
+ * 判断 i 段号是否在内存管理的段号内（是否是不是最后一个段）
+ * 如果是，判断将要释放的内存末尾地址是否是后一个段的起始地址，是则将此段和前段归纳到一起
+ * man->free[i - 1].size += man->free[i].size
+ * 因为 1 + 1 = 1，所以 man->frees--;
+ * 将所有的段往前移送
+ * 如果不能和前面的归纳到一起，判断是否能和后面的空闲段归纳，能则合并
+ * 如果前后的段都不能，判断空闲段的数量是否达到管理的最大值 man->frees < MEMMAN_FREES
+ * 没有则按地址起始顺序插入次释放的空闲内存段，之后的段向后移动一位，并更新内存管理的可分配内存段数 man->frees += 1，和最大的空闲内存段数
+ * */
 int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 {
 	int i, j;
