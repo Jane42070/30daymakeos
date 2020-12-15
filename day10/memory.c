@@ -72,10 +72,8 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size)
 			// free[i] 变为 0，就删掉一条可用信息
 			if (man->free[i].size == 0) {
 				man->frees--;
-				for (; i < man->frees; i++) {
-					// 往前移送
-					man->free[i] = man->free[i + 1];
-				}
+				// 往前移送
+				for (; i < man->frees; i++) man->free[i] = man->free[i + 1];
 			}
 			return a;
 		}
@@ -107,10 +105,8 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 					// man->free[i] 删除
 					// free[i]变成0后归纳到前面去
 					man->frees--;
-					for (; i < man->frees; i++) {
-						// 往前移送
-						man->free[i] = man->free[i + 1];
-					}
+					// 往前移送
+					for (; i < man->frees; i++) man->free[i] = man->free[i + 1];
 				}
 			}
 			// 成功完成
@@ -131,9 +127,7 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 	// 既不能与前面归纳到一起，也不能和后面归纳到一起
 	if (man->frees < MEMMAN_FREES) {
 		// free[i] 之后的，向后移动，腾出一点可用空间
-		for (j = man->frees; j > i; j--) {
-			man->free[j] = man->free[j - 1];
-		}
+		for (j = man->frees; j > i; j--) man->free[j] = man->free[j - 1];
 		man->frees++;
 		// 更新最大值
 		if (man->maxfrees < man->frees) man->maxfrees = man->frees;
@@ -151,18 +145,14 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
 
 unsigned int memman_alloc_4k(struct MEMMAN *man, unsigned int size)
 {
-	unsigned int a;
 	// 向下舍入运算
 	// if size > 0x?????000, size += 0xfff
 	size = (size + 0xfff) & 0xfffff000;
-	a = memman_alloc(man, size);
-	return a;
+	return memman_alloc(man, size);
 }
 
 unsigned int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size)
 {
-	int i;
 	size = (size + 0xfff) & 0xfffff000;
-	i = memman_free(man, addr, size);
-	return i;
+	return memman_free(man, addr, size);
 }
