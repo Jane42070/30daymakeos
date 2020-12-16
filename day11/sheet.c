@@ -13,6 +13,7 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize
 	ctl->top   = -1;	// 一个SHEET都没有
 	for (i = 0; i < MAX_SHEETS; i++) {
 		ctl->sheets0[i].flags = 0;
+		ctl->sheets0[i].ctl = ctl;
 	}
 err:
 	return ctl;
@@ -89,9 +90,9 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1)
 }
 
 // 画面刷新
-void sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0, int bx1, int by1)
+void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1)
 {
-	if (sht->height >= 0) sheet_refreshsub(ctl, sht->vx0 + bx0, sht->vy0 + by0, sht->vx0 + bx1, sht->vy0 + by1);
+	if (sht->height >= 0) sheet_refreshsub(sht->ctl, sht->vx0 + bx0, sht->vy0 + by0, sht->vx0 + bx1, sht->vy0 + by1);
 }
 
 /*
@@ -106,8 +107,9 @@ void sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0, int 
  * 如果 old > height 比之前低，然后再判断 height 为显示还是 = -1 隐藏，做相应的处理
  * 如果 old < height 则是将窗口的层级高度向前移动，其他窗口做相应的处理
  * */
-void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
+void sheet_updown(struct SHEET *sht, int height)
 {
+	struct SHTCTL *ctl = sht->ctl;
 	// 储存设置前的高度信息
 	int h, old = sht->height;
 	// 如果高度过高或或低，进行修正
@@ -170,7 +172,7 @@ void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
 }
 
 // 移动图层
-void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0)
+void sheet_slide(struct SHEET *sht, int vx0, int vy0)
 {
 	// 先保存之前的位置
 	int old_vx0 = sht->vx0, old_vy0 = sht->vy0;
@@ -179,16 +181,16 @@ void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0)
 	sht->vy0 = vy0;
 	// 如果正在显示，则按新图层的信息刷新画面
 	if (sht->height >= 0) {
-		sheet_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + sht->bxsize, old_vy0 + sht->bysize);
-		sheet_refreshsub(ctl, vx0, vy0, vx0 + sht->bxsize, vy0 + sht->bysize);
+		sheet_refreshsub(sht->ctl, old_vx0, old_vy0, old_vx0 + sht->bxsize, old_vy0 + sht->bysize);
+		sheet_refreshsub(sht->ctl, vx0, vy0, vx0 + sht->bxsize, vy0 + sht->bysize);
 	}
 }
 
 // 释放使用的图层
-void sheet_free(struct SHTCTL *ctl, struct SHEET *sht)
+void sheet_free(struct SHEET *sht)
 {
 	// 如果处于显示状态，先设置隐藏
-	if (sht->height >= 0) sheet_updown(ctl, sht, -1);
+	if (sht->height >= 0) sheet_updown(sht, -1);
 	// 设置窗口为未使用标志
 	sht->flags = 0;
 }
