@@ -109,7 +109,7 @@ void putfont8(unsigned char *vram, int xsize, int x, int y, char c, char *font)
  * y 起始 y 坐标
  * c 宏定义颜色
  * s 目标字符串*/
-void putfont8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s)
+void putfonts8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s)
 {
 	extern char hankaku[4096];
 	for (; *s != 0 ; s++) { putfont8(vram, xsize, x, y, c, hankaku + *s * 16); x+=8; }
@@ -124,7 +124,7 @@ void putfont8_pos(unsigned char *vram, int xsize, int pos,int y, char c, char *s
 	int len = 0;
 
 	for (; *start != 0 ; start++) { len+=8; }
-	putfont8_str(vram, xsize, xsize/2 - len/2, y, c, s);
+	putfonts8_str(vram, xsize, xsize/2 - len/2, y, c, s);
 	return;
 }
 
