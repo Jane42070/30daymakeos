@@ -43,18 +43,18 @@ void HariMain(void)
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);	// 透明色号 99
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(buf_mouse, 99);	// 背景色号 99
-	sheet_slide(shtctl, sht_bak, 0, 0);
+	sheet_slide(sht_bak, 0, 0);
 
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
-	sheet_slide(shtctl, sht_mouse, mx, my);
-	sheet_updown(shtctl, sht_bak, 0);
-	sheet_updown(shtctl, sht_mouse, 1);
+	sheet_slide(sht_mouse, mx, my);
+	sheet_updown(sht_bak, 0);
+	sheet_updown(sht_mouse, 1);
 	// putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfont8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
 	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
-	sheet_refresh(shtctl, sht_bak, 0, 0, binfo->scrnx, 80);
+	sheet_refresh(sht_bak, 0, 0, binfo->scrnx, 80);
 
 	for (;;) {
 		// 屏蔽其他中断
@@ -68,7 +68,7 @@ void HariMain(void)
 				sprintf(s, "%02X", i);
 				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
 				putfont8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
-				sheet_refresh(shtctl, sht_bak, 0, 0, 16, 16);
+				sheet_refresh(sht_bak, 0, 0, 16, 16);
 			}
 			else if (fifo8_status(&mousefifo) != 0)
 			{
@@ -96,8 +96,8 @@ void HariMain(void)
 					putfont8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
-					sheet_refresh(shtctl, sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
-					sheet_slide(shtctl, sht_mouse, mx, my);
+					sheet_refresh(sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
+					sheet_slide(sht_mouse, mx, my);
 				}
 			}
 		}
