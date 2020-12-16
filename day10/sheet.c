@@ -50,29 +50,40 @@ void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize, i
 }
 
 // 局部画面刷新
+// V0 整个显存重新赋值实现刷新（处理量太大，系统运行卡顿）
+// V1 通过缓冲区的相对坐标位置内显存的刷新（处理量虽然减小，但是用了 if 语句，还是会所有的显存进行判断，还是没有达到理想效果）
+// V2 通过限定for语句的范围减少 if 判断
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1)
 {
-	int h, bx, by, vx, vy;
+	int h, bx, by, vx, vy, bx0, by0, bx1, by1;
 	unsigned char *buf, c, *vram = ctl->vram;
 	struct SHEET *sht;
 	for (h = 0; h <= ctl->top; h++) {
 		sht = ctl->sheets[h];
 		buf = sht->buf;
-		for (by = 0; by < sht->bysize; by++) {
+		// 使用 vx0 ~ vy1，对 bx0 ~ by1 进行倒推
+		// vx = sht->vx0 + bx;
+		bx0 = vx0 - sht->vx0;
+		by0 = vy0 - sht->vy0;
+		bx1 = vx1 - sht->vx0;
+		by1 = vy1 - sht->vy0;
+		if (bx0 < 0) bx0 = 0;
+		if (by0 < 0) by0 = 0;
+		if (bx1 > sht->bxsize) bx1 = sht->bxsize;
+		if (by1 > sht->bysize) by1 = sht->bysize;
+		// for 语句在 bx0 ~ bx1 之间循环
+		for (by = 0; by < by1; by++) {
 			vy = sht->vy0 + by;
-			for (bx = 0; bx < sht->bxsize; bx++) {
+			for (bx = 0; bx < bx1; bx++) {
 				vx = sht->vx0 + bx;
-				// 指定 vx0 ~ vy1 区域进行画面刷新
-				if (vx0 <= vx && vx < vx1 && vy0 <= vy && vy < vy1) {
-					c = buf[by * sht->bxsize + bx];
-					if (c != sht->col_inv) vram[vy * ctl->xsize + vx] = c;
-				}
+				c = buf[by * sht->bxsize + bx];
+				if (c != sht->col_inv) vram[vy * ctl->xsize + vx] = c;
 			}
 		}
 	}
 }
 
-// 全局画面刷新
+// 画面刷新
 void sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0, int bx1, int by1)
 {
 	if (sht->height >= 0) sheet_refreshsub(ctl, sht->vx0 + bx0, sht->vy0 + by0, sht->vx0 + bx1, sht->vy0 + by1);
