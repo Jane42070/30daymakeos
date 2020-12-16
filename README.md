@@ -104,3 +104,4 @@
 - 在内存开辟一块空间存放`VRAM`的映射，储存在`struct SHTCTL->vmap`，用图层号码而不是色号存入内存地址
 - 每一次画面的变动都会相应的在`SHTCTL->vmap`记录，在`sheet_refreshsub`改动使其每次对照`vmap`的内容对`vram`进行写入
 - 不用从下往顶一直刷新，创建限定高度参数`h1`，对调用了`sheet_refreshsub`的其他函数进行修改
+![day11](./day11/11.png)
