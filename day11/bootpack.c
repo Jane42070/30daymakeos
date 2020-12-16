@@ -14,7 +14,7 @@ void HariMain(void)
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
 
-	unsigned int memtotal;
+	unsigned int memtotal, count = 0;
 	char s[40];
 	unsigned char mcursor[256], keybuf[32], mousebuf[128];		// Define FIFO buffer
 	int i, j, mx, my;
@@ -41,19 +41,19 @@ void HariMain(void)
 	sht_mouse = sheet_alloc(shtctl);
 	sht_win   = sheet_alloc(shtctl);
 	buf_back  = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
-	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 68);
+	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
 
 	sheet_setbuf(sht_bak, buf_back, binfo->scrnx, binfo->scrny, -1);	// 没有透明色
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);	// 透明色号 99
-	sheet_setbuf(sht_win, buf_win, 160, 68, -1);	// 没有透明色
+	sheet_setbuf(sht_win, buf_win, 160, 52, -1);	// 没有透明色
 
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(buf_mouse, 99);	// 背景色号 99
 
 	// 创建窗口
-	make_window8(buf_win, 160, 68, "Window");
-	putfont8_str(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
-	putfont8_str(buf_win, 160, 24, 44, COL8_000000, "Spark-OS!");
+	make_window8(buf_win, 160, 52, "Counter");
+	// putfonts8_str(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
+	// putfonts8_str(buf_win, 160, 24, 44, COL8_000000, "Spark-OS!");
 
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
@@ -69,22 +69,33 @@ void HariMain(void)
 	sheet_updown(sht_mouse, 2);
 
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfont8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
+	putfonts8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
 	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
+
+	// 全局画面刷新
 	sheet_refresh(sht_bak, 0, 0, binfo->scrnx, 80);
 
 	for (;;) {
+		// 计时器开始
+		count++;
+		sprintf(s, "%010d", count);
+		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
+		putfonts8_str(buf_win, 160, 40, 28, COL8_000000, s);
+
+		// 结束
+		sheet_refresh(sht_win, 40, 28, 120, 44);
+
 		// 屏蔽其他中断
 		io_cli();
-			// 接收中断并进入等待
-		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0) io_stihlt();
+		// 接收中断并进入等待
+		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0) io_sti();
 		else {
 			if (fifo8_status(&keyfifo) != 0) {
 				i = fifo8_get(&keyfifo);
 				io_sti();
 				sprintf(s, "%02X", i);
 				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
-				putfont8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
+				putfonts8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 				sheet_refresh(sht_bak, 0, 0, 16, 16);
 			}
 			else if (fifo8_status(&mousefifo) != 0)
@@ -97,7 +108,7 @@ void HariMain(void)
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
 					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
-					putfont8_str(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+					putfonts8_str(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
@@ -110,7 +121,7 @@ void HariMain(void)
 					// 隐藏坐标
 					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
 					// 显示坐标
-					putfont8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+					putfonts8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
 					sheet_refresh(sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
@@ -151,7 +162,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
 	boxfill8(buf, xsize, COL8_000084, 3,         3,         xsize - 4, 20       );
 	boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
 	boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
-	putfont8_str(buf, xsize, 24, 4, COL8_FFFFFF, title);
+	putfonts8_str(buf, xsize, 24, 4, COL8_FFFFFF, title);
 	for (y = 0; y < 14; y++) {
 		for (x = 0; x < 16; x++) {
 			c = closebtn[y][x];
