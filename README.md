@@ -158,5 +158,29 @@ struct TIMERCTL {
 	- 在`bootpack.c`中进行相应的处理
 - 设置多个定时器，思路和图层管理器一样，设置一个定时器管理，预先设置好最多能有`500`个定时器
 - 绘制闪烁光标，方便以后使用在文本编辑器，终端等应用场景中
-- 加快中断处理
-	1. `timeout`不再是剩余时间，而是给定的计时时间，免除了每次中断处理需要当前活动计时器的`timeout`自减的操作
+- 加快中断处理 `timeout`不再是剩余时间，而是给定的计时时间，免除了每次中断处理需要当前活动计时器的`timeout`自减的操作
+- 由于`timectl.count`的类型是`int`，最大值为`0xffffffff`，不能无限制计时，设定为 1 年时间后计时器归零
+	- 或许有更好的方法，是否应该储存为年月日时分秒形式？
+- 再次加快中断处理
+	- 原`timer.c`中断处理
+```c
+// 定时器中断处理
+void inthandler20(int *esp)
+{
+	int i;
+	io_out8(PIC0_OCW2, 0x60);	// 把 IRQ-00 信号接收完了的信息通知给 PIC
+	timerctl.count++;
+	for (i = 0; i < MAX_TIMER; i++) {
+		if (timerctl.timer[i].flags == TIMER_FLAGS_USING) {
+			if (timerctl.timer[i].timeout <= timerctl.count) {
+				timerctl.timer[i].flags = TIMER_FLAGS_ALLOC;
+				fifo8_put(timerctl.timer[i].fifo, timerctl.timer[i].data);
+			}
+		}
+	}
+}
+
+```
+
+	由于设置的 1ms 发生一次中断，1s = 100 次中断，MAX_TIMER = 500，所以 1s 执行 50000 次 if，49998 次是无用功
+- 添加`timerctl.next` 优化`timer.c` - 短时先判断
