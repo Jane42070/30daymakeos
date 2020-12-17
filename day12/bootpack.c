@@ -14,7 +14,7 @@ void HariMain(void)
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
 
-	unsigned int memtotal, count = 0;
+	unsigned int memtotal;
 	char s[40];
 	unsigned char mcursor[256], keybuf[32], mousebuf[128];		// Define FIFO buffer
 	int i, j, mx, my;
@@ -78,8 +78,7 @@ void HariMain(void)
 
 	for (;;) {
 		// 计时器开始
-		count++;
-		sprintf(s, "%010d", count);
+		sprintf(s, "%010d", timerctl.count);
 		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
 		putfonts8_str(buf_win, 160, 40, 28, COL8_000000, s);
 

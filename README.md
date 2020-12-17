@@ -136,3 +136,6 @@ void init_pit()
 }
 ```
 - 在中断记录表里注册计时器中断在`0x20`地址
+- 使用 `PIT` 记录开机时间
+	- 定义`struct TIMERCTL`，定义一个`count`变量
+	- 初始化时设置`count = 0`，每次发生中断时，`count++`

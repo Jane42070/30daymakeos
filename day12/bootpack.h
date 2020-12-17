@@ -219,4 +219,9 @@ void sheet_free(struct SHEET *sht);
 /* timer.c */
 #define PIT_CTRL	0x0043
 #define PIT_CNT0	0x0040
+struct TIMERCTL {
+	unsigned int count;
+};
+extern struct TIMERCTL timerctl;
 void init_pit();
+void inthandler20(int *esp);
