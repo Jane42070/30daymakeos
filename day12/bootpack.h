@@ -220,19 +220,30 @@ void sheet_free(struct SHEET *sht);
 /* timer.c */
 #define PIT_CTRL	0x0043
 #define PIT_CNT0	0x0040
-// 计时器管理
-// 计时 count
+#define MAX_TIMER	500
+#define TIMER_FLAGS_ALLOC	1	// 是否已配置
+#define TIMER_FLAGS_USING	2	// 定时器运行中
+// 计时器
 // 剩余时间 timeout
 // 缓冲区 fifo
 // 剩余时间没有后需要向缓冲区写入的数据 data
-struct TIMERCTL {
-	unsigned int count;
-	unsigned int timeout;
+struct TIMER {
+	unsigned int timeout, flags;
 	struct FIFO8 *fifo;
 	unsigned char data;
+};
+// 计时器管理
+// 计时 count
+// 计时器结构体
+struct TIMERCTL {
+	unsigned int count;
+	struct TIMER timer[MAX_TIMER];
 };
 extern struct TIMERCTL timerctl;
 extern struct FIFO8 timerfifo;
 void init_pit();
+struct TIMER *timer_alloc();
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
-void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);

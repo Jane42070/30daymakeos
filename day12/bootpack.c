@@ -16,7 +16,9 @@ void HariMain(void)
 
 	unsigned int memtotal;
 	char s[40];
-	unsigned char mcursor[256], keybuf[32], mousebuf[128], timerbuf[8];		// Define FIFO buffer
+	unsigned char mcursor[256], keybuf[32], mousebuf[128], timerbuf[8], timerbuf2[8], timerbuf3[8];		// Define FIFO buffer
+	struct TIMER *timer, *timer2, *timer3;
+	struct FIFO8 timerfifo, timerfifo2, timerfifo3;
 	int i, j, mx, my;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
@@ -27,9 +29,19 @@ void HariMain(void)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo8_init(&keyfifo, 32, keybuf);		// 初始化keybuf缓冲区
 	fifo8_init(&mousefifo, 128, mousebuf);	// 初始化mousebuf缓冲区
-	fifo8_init(&timerfifo, 8, timerbuf);	// 初始化timerbuf缓冲区
 
-	settimer(1000, &timerfifo, 1);
+	timer  = timer_alloc();
+	timer2 = timer_alloc();
+	timer3 = timer_alloc();
+	fifo8_init(&timerfifo, 8, timerbuf);
+	fifo8_init(&timerfifo2, 8, timerbuf2);
+	fifo8_init(&timerfifo3, 8, timerbuf3);
+	timer_init(timer, &timerfifo, 1);
+	timer_init(timer2, &timerfifo2, 1);
+	timer_init(timer3, &timerfifo3, 1);
+	timer_settime(timer, 1000);
+	timer_settime(timer2, 300);
+	timer_settime(timer3, 50);
 
 	init_keyboard();
 	enable_mouse(&mdec);
@@ -56,8 +68,6 @@ void HariMain(void)
 
 	// 创建窗口
 	make_window8(buf_win, 160, 52, "Counter");
-	// putfonts8_str(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
-	// putfonts8_str(buf_win, 160, 24, 44, COL8_000000, "Spark-OS!");
 
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
@@ -91,7 +101,7 @@ void HariMain(void)
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
-		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0) io_sti();
+		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) + fifo8_status(&timerfifo2) + fifo8_status(&timerfifo3) == 0) io_sti();
 		else {
 			if (fifo8_status(&keyfifo) != 0) {
 				i = fifo8_get(&keyfifo);
@@ -101,8 +111,7 @@ void HariMain(void)
 				putfonts8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
 				sheet_refresh(sht_bak, 0, 0, 16, 16);
 			}
-			else if (fifo8_status(&mousefifo) != 0)
-			{
+			else if (fifo8_status(&mousefifo) != 0) {
 				i = fifo8_get(&mousefifo);
 				io_sti();
 				if (mouse_decode(&mdec, i) != 0) {
@@ -131,12 +140,32 @@ void HariMain(void)
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}
-			else if (fifo8_status(&timerfifo) != 0)
-			{
+			else if (fifo8_status(&timerfifo) != 0) {
 				i = fifo8_get(&timerfifo);
 				io_sti();
-				putfonts8_str(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10 sec");
-				sheet_refresh(sht_bak, 0, 64, 56, 80);
+				putfonts8_str(buf_back, binfo->scrnx, 0, 80, COL8_FFFFFF, "10 sec");
+				sheet_refresh(sht_bak, 0, 80, 48, 96);
+			}
+			else if (fifo8_status(&timerfifo2) != 0) {
+				i = fifo8_get(&timerfifo2);
+				io_sti();
+				putfonts8_str(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "3 sec");
+				sheet_refresh(sht_bak, 0, 64, 40, 80);
+			}
+			// 模拟光标
+			else if (fifo8_status(&timerfifo3) != 0) {
+				i = fifo8_get(&timerfifo3);
+				io_sti();
+				if (i != 0) {
+					timer_init(timer3, &timerfifo3, 0);
+					boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+				}
+				else {
+					timer_init(timer3, &timerfifo3, 1);
+					boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
+				}
+				timer_settime(timer3, 50);
+				sheet_refresh(sht_bak, 8, 96, 16, 112);
 			}
 		}
 	}
