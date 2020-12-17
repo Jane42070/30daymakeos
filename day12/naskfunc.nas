@@ -14,7 +14,7 @@
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
 		GLOBAL	_memtest_sub
-		EXTERN	_inthandler21, _inthandler27, _inthandler2c
+		EXTERN	_inthandler20, _inthandler21, _inthandler27, _inthandler2c
 
 [SECTION .text]
 
