@@ -46,7 +46,8 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data)
 // 设置定时器时间
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
-	timer->timeout = timeout;
+	// 从现在开始 timectl.count 秒后
+	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_USING;
 }
 
@@ -58,9 +59,10 @@ void inthandler20(int *esp)
 	timerctl.count++;
 	for (i = 0; i < MAX_TIMER; i++) {
 		if (timerctl.timer[i].flags == TIMER_FLAGS_USING) {
-			timerctl.timer[i].timeout--;
-			// 如果设置了超时时间
-			if (timerctl.timer[i].timeout == 0) fifo8_put(timerctl.timer[i].fifo, timerctl.timer[i].data);
+			if (timerctl.timer[i].timeout <= timerctl.count) {
+				timerctl.timer[i].flags = TIMER_FLAGS_ALLOC;
+				fifo8_put(timerctl.timer[i].fifo, timerctl.timer[i].data);
+			}
 		}
 	}
 }

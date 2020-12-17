@@ -224,7 +224,7 @@ void sheet_free(struct SHEET *sht);
 #define TIMER_FLAGS_ALLOC	1	// 是否已配置
 #define TIMER_FLAGS_USING	2	// 定时器运行中
 // 计时器
-// 剩余时间 timeout
+// 计时时间 timeout
 // 缓冲区 fifo
 // 剩余时间没有后需要向缓冲区写入的数据 data
 struct TIMER {
