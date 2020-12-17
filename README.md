@@ -139,3 +139,20 @@ void init_pit()
 - 使用 `PIT` 记录开机时间
 	- 定义`struct TIMERCTL`，定义一个`count`变量
 	- 初始化时设置`count = 0`，每次发生中断时，`count++`
+- 设置一个定时器，到达时间后显示
+	- 此时的`TIMERCTL`
+```c
+// 计时器管理
+// 计时 count
+// 剩余时间 timeout
+// 缓冲区 fifo
+// 剩余时间没有后需要向缓冲区写入的数据 data
+struct TIMERCTL {
+	unsigned int count;
+	unsigned int timeout;
+	struct FIFO8 *fifo;
+	unsigned char data;
+};
+```
+	- 写一个倒计时函数`settimer()`
+	- 在`bootpack.c`中进行相应的处理
