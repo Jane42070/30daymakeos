@@ -10,6 +10,7 @@
 		* [day10 叠加处理](#day10-叠加处理)
 		* [day11 制作窗口](#day11-制作窗口)
 		* [day12 定时器](#day12-定时器)
+		* [day13 继续优化定时器](#day13-继续优化定时器)
 
 <!-- vim-markdown-toc -->
 
@@ -183,4 +184,8 @@ void inthandler20(int *esp)
 ```
 
 	由于设置的 1ms 发生一次中断，1s = 100 次中断，MAX_TIMER = 500，所以 1s 执行 50000 次 if，49998 次是无用功
-- 添加`timerctl.next` 优化`timer.c` - 短时先判断
+- 添加`timerctl.next`优化`timer.c` - 短时先判断
+- 继续优化中断处理，用`struct SHTCTL`思路在`struct TIMERCTL`中创建一个排序好的`timers`
+- haribote.sys 23.1KB
+![day12](./day12/12.png)
+### day13 继续优化定时器

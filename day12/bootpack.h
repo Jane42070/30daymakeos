@@ -222,7 +222,7 @@ void sheet_free(struct SHEET *sht);
 #define PIT_CNT0	0x0040
 #define MAX_TIMER	500
 #define TIMER_FLAGS_ALLOC	1	// 是否已配置
-#define TIMER_FLAGS_USING	2	// 定时器运行中
+#define TIMER_FLAGS_ACTING	2	// 定时器运行中
 // 计时器
 // 计时时间 timeout
 // 缓冲区 fifo
@@ -234,10 +234,14 @@ struct TIMER {
 };
 // 计时器管理
 // 计时 count
+// 最近的计时器时间 next
+// 正在活动 acting == SHEETCTL->top
+// 排好序的计时器结构体
 // 计时器结构体
 struct TIMERCTL {
-	unsigned int count, next;
-	struct TIMER timer[MAX_TIMER];
+	unsigned int count, next, acting;
+	struct TIMER *timers[MAX_TIMER];
+	struct TIMER timers0[MAX_TIMER];
 };
 extern struct TIMERCTL timerctl;
 extern struct FIFO8 timerfifo;
