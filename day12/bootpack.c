@@ -22,7 +22,8 @@ void HariMain(void)
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
 	io_sti();								// IDT/PIC 的初始化已经完成，开放 CPU 的中断
-	io_out8(PIC0_IMR, 0xf9);				// 开放PIC1和键盘中断(11111001)
+	init_pit();								// 设定定时器频率
+	io_out8(PIC0_IMR, 0xf8);				// 开放PIC1和键盘中断(11111001)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo8_init(&keyfifo, 32, keybuf);		// 初始化keybuf缓冲区
 	fifo8_init(&mousefifo, 128, mousebuf);	// 初始化mousebuf缓冲区
@@ -178,5 +179,4 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title)
 			buf[(5 + y) * xsize + (xsize - 21 + x)] = c;
 		}
 	}
-	return;
 }
