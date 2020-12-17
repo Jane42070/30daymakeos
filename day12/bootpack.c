@@ -16,7 +16,7 @@ void HariMain(void)
 
 	unsigned int memtotal;
 	char s[40];
-	unsigned char mcursor[256], keybuf[32], mousebuf[128];		// Define FIFO buffer
+	unsigned char mcursor[256], keybuf[32], mousebuf[128], timerbuf[8];		// Define FIFO buffer
 	int i, j, mx, my;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
@@ -27,6 +27,9 @@ void HariMain(void)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo8_init(&keyfifo, 32, keybuf);		// 初始化keybuf缓冲区
 	fifo8_init(&mousefifo, 128, mousebuf);	// 初始化mousebuf缓冲区
+	fifo8_init(&timerfifo, 8, timerbuf);	// 初始化timerbuf缓冲区
+
+	settimer(1000, &timerfifo, 1);
 
 	init_keyboard();
 	enable_mouse(&mdec);
@@ -88,7 +91,7 @@ void HariMain(void)
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
-		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0) io_sti();
+		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0) io_sti();
 		else {
 			if (fifo8_status(&keyfifo) != 0) {
 				i = fifo8_get(&keyfifo);
@@ -127,6 +130,13 @@ void HariMain(void)
 					sheet_refresh(sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
 					sheet_slide(sht_mouse, mx, my);
 				}
+			}
+			else if (fifo8_status(&timerfifo) != 0)
+			{
+				i = fifo8_get(&timerfifo);
+				io_sti();
+				putfonts8_str(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10 sec");
+				sheet_refresh(sht_bak, 0, 64, 56, 80);
 			}
 		}
 	}

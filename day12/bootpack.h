@@ -139,7 +139,7 @@ void inthandler27(int *esp);
 void inthandler21(int *esp);
 void wait_KBC_sendready(void);
 void init_keyboard(void);
-extern struct FIFO8 keyfifo, mousefifo;
+extern struct FIFO8 keyfifo;
 
 /* mouse.c */
 #define KEYCMD_SENDTO_MOUSE		0xd4
@@ -153,6 +153,7 @@ struct MOUSE_DEC {
 void inthandler2c(int *esp);
 void enable_mouse(struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data);
+extern struct FIFO8 mousefifo;
 extern struct MOUSE_DEC mdec;
 
 /* memory.c */
@@ -219,9 +220,19 @@ void sheet_free(struct SHEET *sht);
 /* timer.c */
 #define PIT_CTRL	0x0043
 #define PIT_CNT0	0x0040
+// 计时器管理
+// 计时 count
+// 剩余时间 timeout
+// 缓冲区 fifo
+// 剩余时间没有后需要向缓冲区写入的数据 data
 struct TIMERCTL {
 	unsigned int count;
+	unsigned int timeout;
+	struct FIFO8 *fifo;
+	unsigned char data;
 };
 extern struct TIMERCTL timerctl;
+extern struct FIFO8 timerfifo;
 void init_pit();
 void inthandler20(int *esp);
+void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);
