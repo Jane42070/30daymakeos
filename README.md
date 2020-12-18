@@ -213,3 +213,4 @@ void inthandler20(int *esp)
 
 - 整合缓冲区后性能提升 1.85 倍
 - 加快中断处理
+	- 用单向链表管理 `timers`，`timer->next` 指向下一个定时器地址，提高性能
