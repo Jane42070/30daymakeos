@@ -100,17 +100,6 @@ void init_gdtidt(void);
 
 /* fifo.c */
 #define FLAGS_OVERRUN	0x0001
-// FIFO 缓冲区模型
-struct FIFO8 {
-	unsigned char *buf;
-	int w, r, size, free, flags;
-};
-
-void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
-int fifo8_put(struct FIFO8 *fifo, unsigned char data);
-int fifo8_get(struct FIFO8 *fifo);
-int fifo8_status(struct FIFO8 *fifo);
-
 // FIFO 优化缓冲区
 struct FIFO32 {
 	int *buf;
