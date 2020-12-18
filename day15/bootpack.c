@@ -6,14 +6,12 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
-	// 内存管理
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	// 图层管理
+	struct FIFO32 fifo;
+	int fifobuf[128];
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
 	struct SHEET *sht_bak, *sht_mouse, *sht_win;
-	// 缓冲区
-	struct FIFO32 fifo;
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256], *buf_win;
 	// 键盘按键字符表
@@ -26,11 +24,9 @@ void HariMain(void)
 		'2', '3', '0', '.'
 	};
 	unsigned int memtotal;
-	int fifobuf[128];
 	char s[40];
 	struct TIMER *timer, *timer2, *timer3;
 	int i, mx, my, cursor_x, cursor_c;
-
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
 	io_sti();								// IDT/PIC 的初始化已经完成，开放 CPU 的中断
@@ -38,7 +34,6 @@ void HariMain(void)
 	io_out8(PIC0_IMR, 0xf8);				// 开放PIC1和键盘中断(11111001)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo32_init(&fifo, 128, fifobuf);
-
 	timer  = timer_alloc();
 	timer2 = timer_alloc();
 	timer3 = timer_alloc();
@@ -48,14 +43,12 @@ void HariMain(void)
 	timer_settime(timer, 1000);
 	timer_settime(timer2, 300);
 	timer_settime(timer3, 50);
-
 	init_keyboard(&fifo, 256);
 	enable_mouse(&fifo, 512, &mdec);
 	memtotal = memtest(0x00400000, 0xbfffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000); // 0x00001000 - 0x0009efff
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
-
 	init_palette();
 	// 分配图层、内存
 	shtctl    = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
@@ -64,14 +57,11 @@ void HariMain(void)
 	sht_win   = sheet_alloc(shtctl);
 	buf_back  = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
 	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
-
 	sheet_setbuf(sht_bak, buf_back, binfo->scrnx, binfo->scrny, -1);	// 没有透明色
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16, 99);	// 透明色号 99
 	sheet_setbuf(sht_win, buf_win, 160, 52, -1);	// 没有透明色
-
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 	init_mouse_cursor8(buf_mouse, 99);	// 背景色号 99
-
 	// 创建窗口
 	make_window8(buf_win, 160, 52, "window");
 	// 创建输入盒子
@@ -80,21 +70,17 @@ void HariMain(void)
 	cursor_c = COL8_FFFFFF;
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
-
 	// 设置在移动图层时进行局部画面刷新
 	sheet_slide(sht_bak, 0, 0);
 	sheet_slide(sht_mouse, mx, my);
 	sheet_slide(sht_win, 80, 72);
-
 	// 设置叠加显示优先级
 	sheet_updown(sht_bak, 0);
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
-
 	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "SPARK.OS");
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
-
 	sheet_refresh(sht_bak, 0, 0, sht_bak->bxsize, sht_bak->bysize);
 
 	for (;;) {
@@ -131,7 +117,10 @@ void HariMain(void)
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
-					if ((mdec.btn & 0x01) != 0) s[1] = 'L';
+					if ((mdec.btn & 0x01) != 0) {
+						s[1] = 'L';
+						sheet_slide(sht_win, mx - 80, my - 8);
+					}
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
 					putfonts8_str_sht(sht_bak, 0, 32, COL8_FFFFFF, COL8_008484, s);
@@ -147,9 +136,7 @@ void HariMain(void)
 					// 显示坐标
 					putfonts8_str_sht(sht_bak, 0, 16, COL8_FFFFFF, COL8_008484, s);
 					// 描绘鼠标
-					// 包含 sheet_refresh
 					sheet_slide(sht_mouse, mx, my);
-					if ((mdec.btn & 0x01) != 0) sheet_slide(sht_win, mx - 80, my - 8);
 				}
 			}
 			switch (i) {

@@ -79,7 +79,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 		return;
 	}
 	// 搜索插入位置
-	while (1) {
+	for(;;) {
 		s = t;
 		t = t->next;
 		// 最后面

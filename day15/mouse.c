@@ -35,10 +35,16 @@ void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec)
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
 {
 	switch (mdec->phase) {
+		case 0:
+			// 等待鼠标就绪 (0xfa)
+			if (data == 0xfa) mdec->phase = 1;
+			return 0;
 		/** 等待鼠标发送第一个字节 */
 		case 1:
-			mdec->buf[0] = data;
-			mdec->phase = 2;
+			if ((data & 0xc8) == 0x08) {
+				mdec->buf[0] = data;
+				mdec->phase = 2;
+			}
 			return 0;
 		/** 等待鼠标发送第二个字节 */
 		case 2:
@@ -58,9 +64,6 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char data)
 			// 鼠标的y方向与画面符号相反
 			mdec->y = - mdec->y;
 			return 1;
-		default:
-			// 等待鼠标就绪 (0xfa)
-			if (data == 0xfa) mdec->phase = 1;
 	}
 	return -1;
 }
