@@ -91,7 +91,7 @@ void HariMain(void)
 	sheet_updown(sht_win, 1);
 	sheet_updown(sht_mouse, 2);
 
-	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "CLAY");
+	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "SPARK.OS");
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
 
@@ -111,7 +111,7 @@ void HariMain(void)
 			// 处理键盘数据
 			if (256 <= i && i <= 511) {
 				sprintf(s, "%02X", i - 256);
-				putfonts8_str_sht(sht_bak, 0, 16, COL8_FFFFFF, COL8_008484, s);
+				putfonts8_str_sht(sht_bak, 0, 0, COL8_FFFFFF, COL8_008484, s);
 				if (i < 256 + 0x54) {
 					if (keytable[i - 256] != 0 && cursor_x < 144) {
 						// 显示一个字符就后移一次光标
@@ -128,8 +128,7 @@ void HariMain(void)
 				}
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
-			}
-			else if (512 <= i && i <= 767) {
+			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
 					if ((mdec.btn & 0x01) != 0) s[1] = 'L';
@@ -144,12 +143,13 @@ void HariMain(void)
 					if (my < 0) my = 0;
 					if (mx > binfo->scrnx - 1) mx = binfo->scrnx - 1;
 					if (my > binfo->scrny - 1) my = binfo->scrny - 1;
-					sprintf(s, "(%3d %3d)", mx, my);
+					sprintf(s, "(%4d %4d)", mx, my);
 					// 显示坐标
 					putfonts8_str_sht(sht_bak, 0, 16, COL8_FFFFFF, COL8_008484, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
 					sheet_slide(sht_mouse, mx, my);
+					if ((mdec.btn & 0x01) != 0) sheet_slide(sht_win, mx - 80, my - 8);
 				}
 			}
 			switch (i) {
