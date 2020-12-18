@@ -11,6 +11,7 @@
 		* [day11 制作窗口](#day11-制作窗口)
 		* [day12 定时器](#day12-定时器)
 		* [day13 继续优化定时器](#day13-继续优化定时器)
+		* [day14 提高分辨率和键盘输入](#day14-提高分辨率和键盘输入)
 
 <!-- vim-markdown-toc -->
 
@@ -214,3 +215,7 @@ void inthandler20(int *esp)
 - 整合缓冲区后性能提升 1.85 倍
 - 加快中断处理
 	- 用单向链表管理 `timers`，`timer->next` 指向下一个定时器地址，提高性能
+- 设置哨兵在`timer.c`中简化程序，使`timer_settime()`从 4 种情况变为 2 种
+- haribote.sys - 22.9KB
+![day13](./day13/13.png)
+### day14 提高分辨率和键盘输入
