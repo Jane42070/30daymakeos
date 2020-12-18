@@ -50,11 +50,10 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data)
 // 事先关闭中断
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
-	int e, i;
 	struct TIMER *t, *s;
 	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_ACTING;
-	e = io_load_eflags();
+	int e = io_load_eflags();
 	// 屏蔽其他中断
 	io_cli();
 	timerctl.acting++;
@@ -107,7 +106,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 // 没有则设为默认值
 void inthandler20(int *esp)
 {
-	int i, j;
+	int i;
 	struct TIMER *timer;
 	io_out8(PIC0_OCW2, 0x60);	// 把 IRQ-00 信号接收完了的信息通知给 PIC
 	timerctl.count++;
