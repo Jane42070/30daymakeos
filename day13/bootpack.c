@@ -20,7 +20,7 @@ void HariMain(void)
 	int fifobuf[128];
 	char s[40];
 	struct TIMER *timer, *timer2, *timer3;
-	int i, count, mx, my;
+	int i, count = 0, mx, my;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
