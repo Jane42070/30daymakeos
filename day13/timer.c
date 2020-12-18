@@ -61,7 +61,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 		if (timerctl.timers[i]->timeout >= timer->timeout) break;
 	}
 	// i 号之后全部一移位
-	for (j = timerctl.acting; j < i; j--) timerctl.timers[j] = timerctl.timers[j - 1];
+	for (j = timerctl.acting; j > i; j--) timerctl.timers[j] = timerctl.timers[j - 1];
 	timerctl.acting++;
 	// 插入到空位上
 	timerctl.timers[i] = timer;

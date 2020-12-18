@@ -100,7 +100,6 @@ void putfont8(unsigned char *vram, int xsize, int x, int y, char c, char *font)
 		if ((d & 0x02) != 0) { p[6] = c; }
 		if ((d & 0x01) != 0) { p[7] = c; }
 	}
-	return;
 }
 /** 显示字符串函数
  * vram 显存起始地址
@@ -113,7 +112,20 @@ void putfonts8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s
 {
 	extern char hankaku[4096];
 	for (; *s != 0 ; s++) { putfont8(vram, xsize, x, y, c, hankaku + *s * 16); x+=8; }
-	return;
+}
+
+/** 叠加处理显示字符串函数
+ * x, y 显示位置坐标
+ * c 字符颜色
+ * b 背景颜色
+ * s 字符串
+ * */
+void putfonts8_str_sht(struct SHEET *sht, int xsize, int x, int y, int c, char b, char *s)
+{
+	int l = strlen(s);
+	boxfill8(sht->buf, sht->bxsize, b, x, y, x + l * 8 - 1, y + 15);
+	putfonts8_str(sht->buf, sht->bxsize, x, y, c, s);
+	sheet_refresh(sht, x, y, x + l * 8, y + 16);
 }
 
 /* 根据位置显示字符串 */

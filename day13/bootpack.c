@@ -107,9 +107,7 @@ void HariMain(void)
 				i = fifo8_get(&keyfifo);
 				io_sti();
 				sprintf(s, "%02X", i);
-				boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 16, 16);
-				putfonts8_str(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);
-				sheet_refresh(sht_bak, 0, 0, 16, 16);
+				putfonts8_str_sht(sht_bak, binfo->scrnx, 0, 0, COL8_FFFFFF, COL8_008484, s);
 			}
 			else if (fifo8_status(&mousefifo) != 0) {
 				i = fifo8_get(&mousefifo);
@@ -119,8 +117,7 @@ void HariMain(void)
 					if ((mdec.btn & 0x01) != 0) s[1] = 'L';
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 32, 16 + 15 * 8 - 1, 48);
-					putfonts8_str(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+					putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 32, COL8_FFFFFF, COL8_008484, s);
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
@@ -130,27 +127,22 @@ void HariMain(void)
 					if (mx > binfo->scrnx - 1) mx = binfo->scrnx - 1;
 					if (my > binfo->scrny - 1) my = binfo->scrny - 1;
 					sprintf(s, "(%3d %3d)", mx, my);
-					// 隐藏坐标
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 100, 32);
 					// 显示坐标
-					putfonts8_str(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);
+					putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 16, COL8_FFFFFF, COL8_008484, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
-					sheet_refresh(sht_bak, 0, 16, 16 + 15 * 8 - 1, 48);
 					sheet_slide(sht_mouse, mx, my);
 				}
-			}
-			else if (fifo8_status(&timerfifo) != 0) {
-				i = fifo8_get(&timerfifo);
-				io_sti();
-				putfonts8_str(buf_back, binfo->scrnx, 0, 80, COL8_FFFFFF, "10 sec");
-				sheet_refresh(sht_bak, 0, 80, 48, 96);
 			}
 			else if (fifo8_status(&timerfifo2) != 0) {
 				i = fifo8_get(&timerfifo2);
 				io_sti();
-				putfonts8_str(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "3 sec");
-				sheet_refresh(sht_bak, 0, 64, 40, 80);
+				putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 64, COL8_FFFFFF, COL8_008484, "3 sec");
+			}
+			else if (fifo8_status(&timerfifo) != 0) {
+				i = fifo8_get(&timerfifo);
+				io_sti();
+				putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 80, COL8_FFFFFF, COL8_008484, "10 sec");
 			}
 			// 模拟光标
 			else if (fifo8_status(&timerfifo3) != 0) {
