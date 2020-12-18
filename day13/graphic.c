@@ -131,7 +131,6 @@ void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s)
 /* 根据位置显示字符串 */
 void putfont8_pos(unsigned char *vram, int xsize, int pos,int y, char c, char *s)
 {
-	extern char hankaku[4096];
 	char *start = s;
 	int len = 0;
 
