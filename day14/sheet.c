@@ -5,14 +5,14 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize
 {
 	struct SHTCTL *ctl;
 	int i;
-	ctl = (struct SHTCTL *) memman_alloc(memman, sizeof(struct SHTCTL));
+	ctl = (struct SHTCTL *) memman_alloc_4k(memman, sizeof(struct SHTCTL));
 	if (ctl == 0) goto err;
-	ctl->vram  = vram;
-	ctl->vmap  = (unsigned char *) memman_alloc(memman, xsize * ysize);
+	ctl->vmap  = (unsigned char *) memman_alloc_4k(memman, xsize * ysize);
 	if (ctl->vmap == 0) {
 		memman_free_4k(memman, (int) ctl, sizeof(struct SHTCTL));
 		goto err;
 	}
+	ctl->vram  = vram;
 	ctl->xsize = xsize;
 	ctl->ysize = ysize;
 	ctl->top   = -1;	// 一个SHEET都没有
@@ -85,9 +85,9 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 		if (bx1 > sht->bxsize) bx1 = sht->bxsize;
 		if (by1 > sht->bysize) by1 = sht->bysize;
 		// for 语句在 bx0 ~ bx1 之间循环
-		for (by = 0; by < by1; by++) {
+		for (by = by0; by < by1; by++) {
 			vy = sht->vy0 + by;
-			for (bx = 0; bx < bx1; bx++) {
+			for (bx = bx0; bx < bx1; bx++) {
 				vx = sht->vx0 + bx;
 				if (vmap[vy * ctl->xsize + vx] == sid) vram[vy * ctl->xsize + vx] = buf[by * sht->bxsize + bx];
 			}
@@ -123,9 +123,9 @@ void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 		if (bx1 > sht->bxsize) bx1 = sht->bxsize;
 		if (by1 > sht->bysize) by1 = sht->bysize;
 		// for 语句在 bx0 ~ bx1 之间循环
-		for (by = 0; by < by1; by++) {
+		for (by = by0; by < by1; by++) {
 			vy = sht->vy0 + by;
-			for (bx = 0; bx < bx1; bx++) {
+			for (bx = bx0; bx < bx1; bx++) {
 				vx = sht->vx0 + bx;
 				if (buf[by * sht->bxsize + bx] != sht->col_inv) vmap[vy * ctl->xsize + vx] = sid;
 			}
