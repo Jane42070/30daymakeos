@@ -251,7 +251,7 @@ struct TIMER {
 // 排好序的计时器结构体
 // 计时器结构体
 struct TIMERCTL {
-	unsigned int count, next, acting;
+	unsigned int count, next;
 	struct TIMER *t0;
 	struct TIMER timers0[MAX_TIMER];
 };

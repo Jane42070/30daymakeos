@@ -7,14 +7,23 @@ struct FIFO32 timerfifo;
 void init_pit()
 {
 	int i;
+	struct TIMER *t;
 	io_out8(PIT_CTRL, 0x34);
 	io_out8(PIT_CNT0, 0x9c);
 	io_out8(PIT_CNT0, 0x2e);
 	timerctl.count = 0;
-	// 初始化的时候没有正在运行的计时器
-	timerctl.next = 0xffffffff;
 	// 设置预先设置定时器为未使用状态
 	for (i = 0; i < MAX_TIMER; i++) timerctl.timers0[i].flags = 0;
+	// 设置一个哨兵
+	t = timer_alloc();
+	t->timeout = 0xffffffff;
+	t->flags = TIMER_FLAGS_ACTING;
+	// 因为目前只有一个
+	t->next = 0;
+	// 哨兵
+	timerctl.t0 = t;
+	// 只有哨兵，所以超时时刻就是哨兵的时刻
+	timerctl.next = 0xffffffff;
 }
 
 // 分配定时器
@@ -48,6 +57,8 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data)
 // 设置定时器时间
 // 将 timer 注册到 timers 中去
 // 事先关闭中断
+// 由于设置了哨兵，需要判断的情况从 4 种变为 2 种
+// 不可能插入到最后，只有一个定时器
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
 	struct TIMER *t, *s;
@@ -56,16 +67,6 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 	int e = io_load_eflags();
 	// 屏蔽其他中断
 	io_cli();
-	timerctl.acting++;
-	if (timerctl.acting == 1) {
-		// 处于运行状态的定时器只有这一个时
-		timerctl.t0 = timer;
-		// 指针指向 0
-		timer->next = 0;
-		timerctl.next = timer->timeout;
-		io_store_eflags(e);
-		return;
-	}
 	t = timerctl.t0;
 	// 插入到最前面
 	if (timer->timeout <= t->timeout) {
@@ -91,10 +92,6 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 			return;
 		}
 	}
-	// 插入到最后的情况
-	s->next = timer;
-	timer->next = 0;
-	io_store_eflags(e);
 }
 
 // 定时器中断处理
@@ -104,16 +101,16 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 // 计算活动的定时器数量
 // 如果有活动的定时器将 timeout 设置为最近的计时器时间
 // 没有则设为默认值
+// 因为设置了哨兵，acting 废除
 void inthandler20(int *esp)
 {
-	int i;
 	struct TIMER *timer;
 	io_out8(PIC0_OCW2, 0x60);	// 把 IRQ-00 信号接收完了的信息通知给 PIC
 	timerctl.count++;
 	if (timerctl.next > timerctl.count) return;
 	// 结构体指针 timer 指向第一个 timer （计时器）
 	timer = timerctl.t0;
-	for (i = 0; i < timerctl.acting; i++) {
+	for (;;) {
 		// timers 的定时器都在活动，就不设置 flags
 		if (timer->timeout > timerctl.count) break;
 		// 超时
@@ -122,9 +119,7 @@ void inthandler20(int *esp)
 		// timer->next 指向下一个定时器地址
 		timer = timer->next;
 	}
-	timerctl.acting -= i;
 	// 直接移位
 	timerctl.t0 = timer;
-	if (timerctl.acting > 0) timerctl.next = timerctl.t0->timeout;
-	else timerctl.next = 0xffffffff;
+	timerctl.next = timer->timeout;
 }
