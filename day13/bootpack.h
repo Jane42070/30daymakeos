@@ -233,11 +233,13 @@ void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s);
 #define MAX_TIMER	500
 #define TIMER_FLAGS_ALLOC	1	// 是否已配置
 #define TIMER_FLAGS_ACTING	2	// 定时器运行中
-// 计时器
+// 计时器单向链表
+// 下一个定时器地址 next
 // 计时时间 timeout
 // 缓冲区 fifo
 // 剩余时间没有后需要向缓冲区写入的数据 data
 struct TIMER {
+	struct TIMER *next;
 	unsigned int timeout, flags;
 	struct FIFO32 *fifo;
 	int data;
@@ -250,7 +252,7 @@ struct TIMER {
 // 计时器结构体
 struct TIMERCTL {
 	unsigned int count, next, acting;
-	struct TIMER *timers[MAX_TIMER];
+	struct TIMER *t0;
 	struct TIMER timers0[MAX_TIMER];
 };
 extern struct TIMERCTL timerctl;

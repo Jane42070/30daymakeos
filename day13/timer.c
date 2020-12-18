@@ -50,22 +50,51 @@ void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data)
 // 事先关闭中断
 void timer_settime(struct TIMER *timer, unsigned int timeout)
 {
-	int e, i, j;
+	int e, i;
+	struct TIMER *t, *s;
 	timer->timeout = timeout + timerctl.count;
 	timer->flags = TIMER_FLAGS_ACTING;
 	e = io_load_eflags();
 	// 屏蔽其他中断
 	io_cli();
-	// 搜索注册位置
-	for (i = 0; i < timerctl.acting; i++) {
-		if (timerctl.timers[i]->timeout >= timer->timeout) break;
-	}
-	// i 号之后全部一移位
-	for (j = timerctl.acting; j > i; j--) timerctl.timers[j] = timerctl.timers[j - 1];
 	timerctl.acting++;
-	// 插入到空位上
-	timerctl.timers[i] = timer;
-	timerctl.next = timerctl.timers[0]->timeout;
+	if (timerctl.acting == 1) {
+		// 处于运行状态的定时器只有这一个时
+		timerctl.t0 = timer;
+		// 指针指向 0
+		timer->next = 0;
+		timerctl.next = timer->timeout;
+		io_store_eflags(e);
+		return;
+	}
+	t = timerctl.t0;
+	// 插入到最前面
+	if (timer->timeout <= t->timeout) {
+		timerctl.t0 = timer;
+		// 然后 next 指向 t
+		timer->next = t;
+		// 修正 timeout
+		timerctl.next = timer->timeout;
+		io_store_eflags(e);
+		return;
+	}
+	// 搜索插入位置
+	while (1) {
+		s = t;
+		t = t->next;
+		// 最后面
+		if (t == 0) break;
+		// 插入到 s 和 t 之间时
+		if (timer->timeout <= t->timeout) {
+			s->next = timer;
+			timer->next = t;
+			io_store_eflags(e);
+			return;
+		}
+	}
+	// 插入到最后的情况
+	s->next = timer;
+	timer->next = 0;
 	io_store_eflags(e);
 }
 
@@ -79,19 +108,24 @@ void timer_settime(struct TIMER *timer, unsigned int timeout)
 void inthandler20(int *esp)
 {
 	int i, j;
+	struct TIMER *timer;
 	io_out8(PIC0_OCW2, 0x60);	// 把 IRQ-00 信号接收完了的信息通知给 PIC
 	timerctl.count++;
 	if (timerctl.next > timerctl.count) return;
+	// 结构体指针 timer 指向第一个 timer （计时器）
+	timer = timerctl.t0;
 	for (i = 0; i < timerctl.acting; i++) {
 		// timers 的定时器都在活动，就不设置 flags
-		if (timerctl.timers[i]->timeout > timerctl.count) break;
+		if (timer->timeout > timerctl.count) break;
 		// 超时
-		timerctl.timers[i]->flags = TIMER_FLAGS_ALLOC;
-		fifo32_put(timerctl.timers[i]->fifo, timerctl.timers[i]->data);
+		timer->flags = TIMER_FLAGS_ALLOC;
+		fifo32_put(timer->fifo, timer->data);
+		// timer->next 指向下一个定时器地址
+		timer = timer->next;
 	}
-	// 正好有 i 个定时器超时了，其余的进行移位
 	timerctl.acting -= i;
-	for (j = 0; j < timerctl.acting; j++) timerctl.timers[j] = timerctl.timers[i + j];
-	if (timerctl.acting > 0) timerctl.next = timerctl.timers[0]->timeout;
+	// 直接移位
+	timerctl.t0 = timer;
+	if (timerctl.acting > 0) timerctl.next = timerctl.t0->timeout;
 	else timerctl.next = 0xffffffff;
 }
