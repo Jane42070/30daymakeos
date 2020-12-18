@@ -216,7 +216,7 @@ void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
 void sheet_updown(struct SHEET *sht, int height);
 void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
-void putfonts8_str_sht(struct SHEET *sht, int xsize, int x, int y, int c, char b, char *s);
+void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s);
 
 /* timer.c */
 #define PIT_CTRL	0x0043

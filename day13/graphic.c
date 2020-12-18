@@ -120,7 +120,7 @@ void putfonts8_str(unsigned char *vram, int xsize, int x, int y, char c, char *s
  * b 背景颜色
  * s 字符串
  * */
-void putfonts8_str_sht(struct SHEET *sht, int xsize, int x, int y, int c, char b, char *s)
+void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s)
 {
 	int l = strlen(s);
 	boxfill8(sht->buf, sht->bxsize, b, x, y, x + l * 8 - 1, y + 15);
