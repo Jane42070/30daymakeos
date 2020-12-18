@@ -17,7 +17,9 @@ void inthandler21(int *esp)
 /** 等待键盘控制电路准备完毕 */
 void wait_KBC_sendready(void)
 {
-	for(;;)  if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) { break; }
+	for(;;)  {
+		if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) break;
+	}
 }
 
 /** 初始化键盘控制电路
