@@ -7,14 +7,12 @@ struct MOUSE_DEC mdec;
 /* 接收来自PS/2鼠标的中断 */
 void inthandler2c(int *esp)
 {
-	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	unsigned char data;
 	// 从鼠标接收数据
 	/* 通知 PIC1 IRQ-12 的受理已经完成 */
 	io_out8(PIC1_OCW2, 0x64);
 	/* 通知 PIC0 IRQ-02 的受理已经完成 */
 	io_out8(PIC0_OCW2, 0x62);
-	data = io_in8(PORT_KEYDAT);
+	unsigned char data = io_in8(PORT_KEYDAT);
 	fifo8_put(&mousefifo, data);
 }
 

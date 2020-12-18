@@ -5,12 +5,10 @@ struct FIFO8 keyfifo;
 /* 接收来自PS/2键盘的中断 */
 void inthandler21(int *esp)
 {
-	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-	unsigned char data;
 	// 从键盘接收数据
 	/* 通知PIC的IRQ-01 已经受理完毕 */
 	io_out8(PIC0_OCW2, 0x61);
-	data = io_in8(PORT_KEYDAT);
+	unsigned char data = io_in8(PORT_KEYDAT);
 	// FIFO
 	fifo8_put(&keyfifo, data);
 }
@@ -18,7 +16,7 @@ void inthandler21(int *esp)
 /** 等待键盘控制电路准备完毕 */
 void wait_KBC_sendready(void)
 {
-	for(;;) { if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) { break; } }
+	for(;;)  if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) { break; }
 }
 
 /** 初始化键盘控制电路

@@ -16,10 +16,10 @@ void HariMain(void)
 
 	unsigned int memtotal;
 	char s[40];
-	unsigned char mcursor[256], keybuf[32], mousebuf[128], timerbuf[8], timerbuf2[8], timerbuf3[8];		// Define FIFO buffer
+	unsigned char keybuf[32], mousebuf[128], timerbuf[8];		// Define FIFO buffer
 	struct TIMER *timer, *timer2, *timer3;
-	struct FIFO8 timerfifo, timerfifo2, timerfifo3;
-	int i, j, mx, my;
+	struct FIFO8 timerfifo;
+	int i, mx, my;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
@@ -29,16 +29,14 @@ void HariMain(void)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo8_init(&keyfifo, 32, keybuf);		// 初始化keybuf缓冲区
 	fifo8_init(&mousefifo, 128, mousebuf);	// 初始化mousebuf缓冲区
+	fifo8_init(&timerfifo, 8, timerbuf);
 
 	timer  = timer_alloc();
 	timer2 = timer_alloc();
 	timer3 = timer_alloc();
-	fifo8_init(&timerfifo, 8, timerbuf);
-	fifo8_init(&timerfifo2, 8, timerbuf2);
-	fifo8_init(&timerfifo3, 8, timerbuf3);
-	timer_init(timer, &timerfifo, 1);
-	timer_init(timer2, &timerfifo2, 1);
-	timer_init(timer3, &timerfifo3, 1);
+	timer_init(timer, &timerfifo, 10);
+	timer_init(timer2, &timerfifo, 3);
+	timer_init(timer3, &timerfifo, 1);
 	timer_settime(timer, 1000);
 	timer_settime(timer2, 300);
 	timer_settime(timer3, 50);
@@ -92,22 +90,17 @@ void HariMain(void)
 	for (;;) {
 		// 计时器开始
 		sprintf(s, "%010d", timerctl.count);
-		boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
-		putfonts8_str(buf_win, 160, 40, 28, COL8_000000, s);
-
-		// 结束
-		sheet_refresh(sht_win, 40, 28, 120, 44);
-
+		putfonts8_str_sht(sht_win, 40, 28, COL8_000000, COL8_C6C6C6, s);
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
-		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) + fifo8_status(&timerfifo2) + fifo8_status(&timerfifo3) == 0) io_sti();
+		if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0) io_sti();
 		else {
 			if (fifo8_status(&keyfifo) != 0) {
 				i = fifo8_get(&keyfifo);
 				io_sti();
 				sprintf(s, "%02X", i);
-				putfonts8_str_sht(sht_bak, binfo->scrnx, 0, 0, COL8_FFFFFF, COL8_008484, s);
+				putfonts8_str_sht(sht_bak, 0, 0, COL8_FFFFFF, COL8_008484, s);
 			}
 			else if (fifo8_status(&mousefifo) != 0) {
 				i = fifo8_get(&mousefifo);
@@ -117,7 +110,7 @@ void HariMain(void)
 					if ((mdec.btn & 0x01) != 0) s[1] = 'L';
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
-					putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 32, COL8_FFFFFF, COL8_008484, s);
+					putfonts8_str_sht(sht_bak, 0, 32, COL8_FFFFFF, COL8_008484, s);
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
@@ -128,33 +121,30 @@ void HariMain(void)
 					if (my > binfo->scrny - 1) my = binfo->scrny - 1;
 					sprintf(s, "(%3d %3d)", mx, my);
 					// 显示坐标
-					putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 16, COL8_FFFFFF, COL8_008484, s);
+					putfonts8_str_sht(sht_bak, 0, 16, COL8_FFFFFF, COL8_008484, s);
 					// 描绘鼠标
 					// 包含 sheet_refresh
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}
-			else if (fifo8_status(&timerfifo2) != 0) {
-				i = fifo8_get(&timerfifo2);
-				io_sti();
-				putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 64, COL8_FFFFFF, COL8_008484, "3 sec");
-			}
 			else if (fifo8_status(&timerfifo) != 0) {
-				i = fifo8_get(&timerfifo);
 				io_sti();
-				putfonts8_str_sht(sht_bak, sht_bak->bxsize, 0, 80, COL8_FFFFFF, COL8_008484, "10 sec");
-			}
-			// 模拟光标
-			else if (fifo8_status(&timerfifo3) != 0) {
-				i = fifo8_get(&timerfifo3);
-				io_sti();
-				if (i != 0) {
-					timer_init(timer3, &timerfifo3, 0);
-					boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
-				}
-				else {
-					timer_init(timer3, &timerfifo3, 1);
-					boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
+				switch (fifo8_get(&timerfifo)) {
+					case 10:
+						putfonts8_str_sht(sht_bak, 0, 80, COL8_FFFFFF, COL8_008484, "10 sec");
+						break;
+					case 3:
+						putfonts8_str_sht(sht_bak, 0, 64, COL8_FFFFFF, COL8_008484, "3 sec");
+						break;
+					// 模拟光标
+					case 1:
+						timer_init(timer3, &timerfifo, 0);
+						boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+						break;
+					case 0:
+						timer_init(timer3, &timerfifo, 1);
+						boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
+						break;
 				}
 				timer_settime(timer3, 50);
 				sheet_refresh(sht_bak, 8, 96, 16, 112);
