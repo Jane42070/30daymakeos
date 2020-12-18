@@ -1,7 +1,7 @@
 #include "bootpack.h"
 
 struct TIMERCTL timerctl;
-struct FIFO8 timerfifo;
+struct FIFO32 timerfifo;
 
 // 初始化PIT
 void init_pit()
@@ -39,7 +39,7 @@ void timer_free(struct TIMER *timer)
 }
 
 // 初始化定时器
-void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data)
+void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data)
 {
 	timer->fifo = fifo;
 	timer->data = data;
@@ -87,7 +87,7 @@ void inthandler20(int *esp)
 		if (timerctl.timers[i]->timeout > timerctl.count) break;
 		// 超时
 		timerctl.timers[i]->flags = TIMER_FLAGS_ALLOC;
-		fifo8_put(timerctl.timers[i]->fifo, timerctl.timers[i]->data);
+		fifo32_put(timerctl.timers[i]->fifo, timerctl.timers[i]->data);
 	}
 	// 正好有 i 个定时器超时了，其余的进行移位
 	timerctl.acting -= i;

@@ -1,8 +1,9 @@
 #include "bootpack.h"
 // 鼠标缓冲区
-struct FIFO8 mousefifo;
+struct FIFO32 *mousefifo;
 // 鼠标实时数据结构体
 struct MOUSE_DEC mdec;
+int mousedata0;
 
 /* 接收来自PS/2鼠标的中断 */
 void inthandler2c(int *esp)
@@ -12,12 +13,14 @@ void inthandler2c(int *esp)
 	io_out8(PIC1_OCW2, 0x64);
 	/* 通知 PIC0 IRQ-02 的受理已经完成 */
 	io_out8(PIC0_OCW2, 0x62);
-	unsigned char data = io_in8(PORT_KEYDAT);
-	fifo8_put(&mousefifo, data);
+	int data = io_in8(PORT_KEYDAT);
+	fifo32_put(mousefifo, data + mousedata0);
 }
 
-void enable_mouse(struct MOUSE_DEC *mdec)
+void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec)
 {
+	mousefifo = fifo;
+	mousedata0 = data0;
 	/** 激活鼠标 */
 	wait_KBC_sendready();
 	// 对键盘电路发送指令 0xd4
