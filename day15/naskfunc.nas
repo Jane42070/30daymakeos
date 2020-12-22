@@ -11,9 +11,11 @@
 		GLOBAL	_io_out8, _io_out16, _io_out32
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
+		GLOBAL	_load_tr
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
 		GLOBAL	_memtest_sub
+		GLOBAL	_farjmp
 		EXTERN	_inthandler20, _inthandler21, _inthandler27, _inthandler2c
 
 [SECTION .text]
@@ -91,6 +93,10 @@ _load_idtr:		; void load_idtr(int limit, int addr);
 		MOV		AX,[ESP+4]		; limit
 		MOV		[ESP+6],AX
 		LIDT	[ESP+6]
+		RET
+
+_load_tr:		; void load_tr(int tr)
+		LTR		[ESP+4]			; tr
 		RET
 
 _load_cr0:		; int load_cr0(void);
@@ -173,6 +179,7 @@ _memtest_sub:	; unsigned int memtest_sub(unsigned int start, unsigned int end)
 		MOV		ESI,0xaa55aa55			; pat0 = 0xaa55aa55;
 		MOV		EDI,0x55aa55aa			; pat1 = 0x55aa55aa;
 		MOV		EAX,[ESP+12+4]			; i = start;
+
 mts_loop:
 		MOV		EBX,EAX
 		ADD		EBX,0xffc				; p = i + 0xffc;
@@ -197,4 +204,8 @@ mts_fin:
 		POP		EBX
 		POP		ESI
 		POP		EDI
+		RET
+
+_farjmp:		; void farjmp(int eip, int cs)
+		JMP		FAR [ESP+4]				; eip, cs
 		RET
