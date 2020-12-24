@@ -28,7 +28,7 @@ void HariMain(void)
 	char s[40];
 	struct TIMER *timer, *timer2, *timer3;
 	int i, mx, my, cursor_x, cursor_c;
-	struct TASK *task_b;
+	struct TASK *task_a, *task_b;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
@@ -36,7 +36,7 @@ void HariMain(void)
 	init_pit();								// 设定定时器频率
 	io_out8(PIC0_IMR, 0xf8);				// 开放PIC1和键盘中断(11111001)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	timer    = timer_alloc();
 	timer2   = timer_alloc();
 	timer3   = timer_alloc();
@@ -87,7 +87,8 @@ void HariMain(void)
 	putfonts8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
 	sheet_refresh(sht_back, 0, 0, sht_back->bxsize, sht_back->bysize);
 
-	task_init(memman);
+	task_a = task_init(memman);
+	fifo.task = task_a;
 	task_b = task_alloc();
 	task_b->tss.esp    = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
 	task_b->tss.eip    = (int) &task_b_main;
@@ -107,7 +108,10 @@ void HariMain(void)
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
-		if (fifo32_status(&fifo) == 0) io_stihlt();
+		if (fifo32_status(&fifo) == 0) {
+			task_sleep(task_a);
+			io_sti();
+		}
 		else {
 			i = fifo32_get(&fifo);
 			io_sti();
@@ -252,7 +256,7 @@ void task_b_main(struct SHEET *sht_back)
 	int fifobuf[128], count = 0, count0 = 0;
 	char s[12];
 	
-	fifo32_init(&fifo, 128, fifobuf);
+	fifo32_init(&fifo, 128, fifobuf, 0);
 	timer_1s  = timer_alloc();
 	timer_put = timer_alloc();
 	timer_init(timer_1s, &fifo, 100);

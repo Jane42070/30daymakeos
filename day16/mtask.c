@@ -75,3 +75,22 @@ void task_switch()
 		farjmp(0, taskctl->tasks[taskctl->now]->sel);
 	}
 }
+
+// 任务休眠
+void task_sleep(struct TASK *task)
+{
+	int i;
+	char ts = 0;	// task_switch flag
+	if (task->flags == 2) {	// 如果指定任务处于唤醒状态
+		if (task == taskctl->tasks[taskctl->now]) ts = 1;	// 让自己休眠后，还需要进行任务切换
+		for (i = 0; i < taskctl->running; i++) if (taskctl->tasks[i] == task) break;	// 寻找 task 所在的位置
+		taskctl->running--;
+		if (i < taskctl->now) taskctl->now--;	// 需要移动成员，要相应的处理
+		for (; i < taskctl->running; i++) taskctl->tasks[i] = taskctl->tasks[i + 1];	// 进行移位操作
+		task->flags = 1;	// 置为不工作状态
+		if (ts != 0) {	// 切换任务
+			if (taskctl->now >= taskctl->running) taskctl->now = 0;	// 如果 now 的值出现异常，则进行修正，运行第一个分配的任务
+			farjmp(0, taskctl->tasks[taskctl->now]->sel);	// 跳转到该代码段
+		}
+	}
+}

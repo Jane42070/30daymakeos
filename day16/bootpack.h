@@ -107,15 +107,15 @@ void init_gdtidt(void);
 struct FIFO32 {
 	int *buf;
 	int w, r, size, free, flags;
+	struct TASK *task;
 };
-
-void fifo32_init(struct FIFO32 *fifo, int size, int *buf);
+void fifo32_init(struct FIFO32 *fifo, int size, int *buf, struct TASK *task);
 int fifo32_put(struct FIFO32 *fifo, int data);
 int fifo32_get(struct FIFO32 *fifo);
 int fifo32_status(struct FIFO32 *fifo);
 
 /* init.c */
-#define PORT_KEYDAT				0x0060
+#define PORT_KEYDAT		0x0060
 /** 初始化 PIC */
 void init_pic(void);
 void inthandler27(int *esp);
@@ -287,3 +287,4 @@ struct TASK *task_alloc();						// 分配任务
 extern struct TIMER *task_timer;				// 任务切换计时器
 void task_run(struct TASK *task);				// 运行任务
 void task_switch();								// 任务切换
+void task_sleep(struct TASK *task);				// 任务休眠
