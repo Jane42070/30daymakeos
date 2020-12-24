@@ -312,3 +312,4 @@ struct FIFO32 {
 - 性能比之前提升 2.19 倍左右
 ![性能测试](./day16/task-sleep-performance.png)
 - 增加窗口数量，更多的任务
+![更多的窗口](./day16/16-more-window.png)
