@@ -274,11 +274,13 @@ struct TSS32 {
  * sel(selector) 用来存放 GDT 的编号
  * level 优先级级别
  * priority 任务优先级
+ * fifo 缓冲区
  * tss 任务属性
  * */
 struct TASK {
 	int sel, flags;
 	int level, priority;
+	struct FIFO32 fifo;
 	struct TSS32 tss;
 };
 

@@ -383,3 +383,7 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 - 实现`<TAB>`窗口切换
 
 ![窗口切换](./day17/switch_window.gif)
+
+- 实现字符输入
+- 思路
+	- 只要在键盘按下的时候向 `console_task`的缓冲区`FIFO`发送数据即可，将`FIFO`加入`struct TASK`

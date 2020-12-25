@@ -125,20 +125,31 @@ void HariMain(void)
 			if (256 <= i && i <= 511) {
 				sprintf(s, "%02X", i - 256);
 				putfonts8_str_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s);
-				if (i < 256 + 0x54) {
-					if (keytable[i - 256] != 0 && cursor_x < 128) {
-						// 显示一个字符就后移一次光标
-						s[0] = keytable[i - 256];
-						s[1] = 0;
-						putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s);
-						cursor_x += 8;
+				if (i < 256 + 0x54 && keytable[i - 256] != 0) {
+					// 显示一个字符就后移一次光标
+					if (key_to == 0) {
+						if (cursor_x < 128) {
+							s[0] = keytable[i - 256];
+							s[1] = 0;
+							putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s);
+							cursor_x += 8;
+						}
 					}
+					else fifo32_put(&task_cons->fifo, keytable[i - 256] + 256);
 				}
 				// 退格键处理，前移一次光标
-				if (i == 256 + 0x0e && cursor_x > 8) {
-					putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ");
-					cursor_x -= 8;
+				// 发送给任务 A
+				if (i == 256 + 0x0e ) {
+					if (key_to == 0) {
+						if (cursor_x > 8) {
+							// 用空白擦除光标后光标前移一位
+							putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ");
+							cursor_x -= 8;
+						}
+					}
+					else fifo32_put(&task_cons->fifo, 8 + 256);
 				}
+				// tab键处理，交换当前窗口和高度
 				if (i == 256 + 0x0f) {
 					if (key_to == 0) {
 						key_to = 1;
@@ -286,40 +297,65 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 
 void console_task(struct SHEET *sheet)
 {
-	struct FIFO32 fifo;
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	int fifobuf[128], cursor_x = 8, cursor_c = COL8_000000;
-	fifo32_init(&fifo, 128, fifobuf, task);
+	int fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	fifo32_init(&task->fifo, 128, fifobuf, task);
 
 	timer  = timer_alloc();
-	timer_init(timer, &fifo, 1);
+	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
+	char s[2] = {0};
+
+	// 显示提示符
+	putfonts8_str_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">");
 
 	for (;;) {
 		io_cli();
-		if (fifo32_status(&fifo) == 0) {
+		if (fifo32_status(&task->fifo) == 0) {
 			task_sleep(task);
 			io_sti();
 		}
 		else {
 			io_sti();
-			switch (fifo32_get(&fifo)) {
+			int i = fifo32_get(&task->fifo);
+			switch (i) {
 				case 1:
-					timer_init(timer, &fifo, 0);
+					timer_init(timer, &task->fifo, 0);
 					timer_settime(timer, 50);
 					cursor_c = COL8_FFFFFF;
 					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 					break;
 				case 0:
-					timer_init(timer, &fifo, 1);
+					timer_init(timer, &task->fifo, 1);
 					timer_settime(timer, 50);
 					cursor_c = COL8_000000;
 					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 					break;
 			}
+			if (256 <= i && i <= 511) {	// 通过任务A接收键盘数据
+				if (i == 8 + 256) {	// 退格键
+					// 如果存在一个以上字符，可以退格
+					if (cursor_x > 16) {
+						putfonts8_str_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ");
+						cursor_x -= 8;
+					}
+				}
+				else
+				{
+					if (cursor_x < 240) {	// 如果字符未满一行，继续追加
+						s[0] = i - 256;
+						s[1] = 0;
+						putfonts8_str_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s);
+						cursor_x += 8;
+					}
+				}
+			}
+			// 刷新光标
+			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 		}
 	}
 }
