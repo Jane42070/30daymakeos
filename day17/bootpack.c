@@ -1,4 +1,5 @@
 #include "bootpack.h"
+#define KEYCMD_LED 0xed
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
@@ -9,8 +10,8 @@ void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	struct FIFO32 fifo;
-	int fifobuf[128];
+	struct FIFO32 fifo, keycmd;
+	int fifobuf[128], keycmd_buf[32];
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
 	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
@@ -37,7 +38,7 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7;
+	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 
 	unsigned int memtotal;
 	char s[40];
@@ -52,6 +53,7 @@ void HariMain(void)
 	io_out8(PIC0_IMR, 0xf8);				// 开放PIC1和键盘中断(11111001)
 	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
 	fifo32_init(&fifo, 128, fifobuf, 0);
+	fifo32_init(&keycmd, 32, keycmd_buf, 0);
 	timer   = timer_alloc();
 	timer_init(timer, &fifo, 1);
 	timer_settime(timer, 50);
@@ -122,8 +124,16 @@ void HariMain(void)
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_str_sht(sht_back, 0, 50, COL8_FFFFFF, COL8_008484, s);
 
+	// 为了避免和键盘当前状态起冲突，在一开始先进行设置
+	fifo32_put(&keycmd, KEYCMD_LED);
+	fifo32_put(&keycmd, key_leds);
 	for (;;) {
-		// 计时器开始
+		if (fifo32_status(&keycmd) > 0 && keycmd_wait < 0) {
+			// 如果存在向键盘控制器发送的数据，则发送它
+			keycmd_wait = fifo32_get(&keycmd);
+			wait_KBC_sendready();
+			io_out8(PORT_KEYDAT, keycmd_wait);
+		}
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
@@ -202,6 +212,28 @@ void HariMain(void)
 						break;
 					case 256 + 0xb6:// rShift OFF
 						key_shift &= ~2;
+						break;
+					case 256 + 0x3a:// CapsLock
+						key_leds ^= 4;
+						fifo32_put(&keycmd, KEYCMD_LED);
+						fifo32_put(&keycmd, key_leds);
+						break;
+					case 256 + 0x45:// NumLock
+						key_leds ^= 2;
+						fifo32_put(&keycmd, KEYCMD_LED);
+						fifo32_put(&keycmd, key_leds);
+						break;
+					case 256 + 0x46:// ScrollLock
+						key_leds ^= 1;
+						fifo32_put(&keycmd, KEYCMD_LED);
+						fifo32_put(&keycmd, key_leds);
+						break;
+					case 256 + 0xfa:// 键盘成功接收到数据
+						keycmd_wait = -1;
+						break;
+					case 256 + 0xfe:// 键盘没有成功接收到数据
+						wait_KBC_sendready();
+						io_out8(PORT_KEYDAT, keycmd_wait);
 						break;
 				}
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
