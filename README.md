@@ -380,3 +380,6 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 - 编写终端
 - 我很喜欢命令行界面，命令行能给我自在的感觉
 - 制作终端窗口`task_cons`和终端下的`blinking cursor`
+- 实现`<TAB>`窗口切换
+
+![窗口切换](./day17/switch_window.gif)
