@@ -377,3 +377,6 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 ```
 - 测试单独执行任务的情况
 ![只有一个任务](./day17/alone-task.png)
+- 编写终端
+- 我很喜欢命令行界面，命令行能给我自在的感觉
+- 制作终端窗口`task_cons`和终端下的`blinking cursor`

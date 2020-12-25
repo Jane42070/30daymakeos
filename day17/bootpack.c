@@ -2,7 +2,7 @@
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
-void task_b_main(struct SHEET *sht_win_b);
+void console_task(struct SHEET *sheet);
 
 void HariMain(void)
 {
@@ -12,9 +12,9 @@ void HariMain(void)
 	int fifobuf[128];
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
-	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_win_b[3];
+	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_cons;
 	// 定义背景缓冲区、鼠标缓冲区
-	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_win_b;
+	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
 	// 键盘按键字符表
 	static char keytable[0x54] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '+', 0,   0,
@@ -28,7 +28,7 @@ void HariMain(void)
 	char s[40];
 	struct TIMER *timer;
 	int i, mx, my, cursor_x, cursor_c;
-	struct TASK *task_a, *task_b[3];
+	struct TASK *task_a, *task_cons;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
@@ -60,25 +60,23 @@ void HariMain(void)
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny, -1);	// 没有透明色
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
-	// sht_win_b
-	for (i = 0; i < 3; i++) {
-		sht_win_b[i] = sheet_alloc(shtctl);
-		buf_win_b = (unsigned char *) memman_alloc_4k(memman, 144 * 52);
-		sheet_setbuf(sht_win_b[i], buf_win_b, 144, 52, -1);
-		sprintf(s, "task_b[%d]", i);
-		make_window8(buf_win_b, 144, 52, s, 0);
-		task_b[i] = task_alloc();
-		task_b[i]->tss.esp    = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
-		task_b[i]->tss.eip    = (int) &task_b_main;
-		task_b[i]->tss.es     = 1 * 8;
-		task_b[i]->tss.cs     = 2 * 8;
-		task_b[i]->tss.ss     = 1 * 8;
-		task_b[i]->tss.ds     = 1 * 8;
-		task_b[i]->tss.fs     = 1 * 8;
-		task_b[i]->tss.gs     = 1 * 8;
-		*((int *) (task_b[i]->tss.esp + 4)) = (int) sht_win_b[i];
-		// task_run(task_b[i], 2, i + 1);
-	}
+	// sht_cons
+	sht_cons = sheet_alloc(shtctl);
+	buf_cons = (unsigned char *) memman_alloc_4k(memman, 256 * 165);
+	sheet_setbuf(sht_cons, buf_cons, 256, 165, -1);
+	make_window8(buf_cons, 256, 165, "console", 0);
+	make_textbox8(sht_cons, 8, 28, 240, 128, COL8_000000);
+	task_cons = task_alloc();
+	task_cons->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+	task_cons->tss.eip = (int) &console_task;
+	task_cons->tss.es = 1 * 8;
+	task_cons->tss.cs = 2 * 8;
+	task_cons->tss.ss = 1 * 8;
+	task_cons->tss.ds = 1 * 8;
+	task_cons->tss.fs = 1 * 8;
+	task_cons->tss.gs = 1 * 8;
+	*((int *) (task_cons->tss.esp + 4)) = (int) sht_cons;
+	task_run(task_cons, 2, 2);	// 第二等级，0.02秒
 
 	// sht_win
 	sht_win   = sheet_alloc(shtctl);
@@ -97,19 +95,15 @@ void HariMain(void)
 	my = (binfo->scrny - 28 - 16) / 2;
 
 	// 设置在移动图层时进行局部画面刷新
-	sheet_slide(sht_back, 0, 0);
-	sheet_slide(sht_win_b[0], 168,  56);
-	sheet_slide(sht_win_b[1], 8,   116);
-	sheet_slide(sht_win_b[2], 168, 116);
-	sheet_slide(sht_win, 8, 56);
+	sheet_slide(sht_back,  0,   0);
+	sheet_slide(sht_cons,  32,  4);
+	sheet_slide(sht_win,   8,  56);
 	sheet_slide(sht_mouse, mx, my);
 	// 设置叠加显示优先级
 	sheet_updown(sht_back, 0);
-	sheet_updown(sht_win_b[0], 1);
-	sheet_updown(sht_win_b[1], 2);
-	sheet_updown(sht_win_b[2], 3);
-	sheet_updown(sht_win, 4);
-	sheet_updown(sht_mouse, 5);
+	sheet_updown(sht_cons, 1);
+	sheet_updown(sht_win,  2);
+	sheet_updown(sht_mouse,3);
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
 	putfonts8_str_sht(sht_back, 0, 50, COL8_FFFFFF, COL8_008484, s);
 
@@ -264,32 +258,43 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c)
 	boxfill8(sht->buf, sht->bxsize, c,           x0 - 1, y0 - 1, x1 + 0, y1 + 0);
 }
 
-void task_b_main(struct SHEET *sht_win_b)
+void console_task(struct SHEET *sheet)
 {
 	struct FIFO32 fifo;
-	struct TIMER *timer_1s;
-	int fifobuf[128], count = 0, count0 = 0;
-	char s[12];
-	
-	fifo32_init(&fifo, 128, fifobuf, 0);
-	timer_1s  = timer_alloc();
-	timer_init(timer_1s, &fifo, 100);
-	timer_settime(timer_1s, 100);
+	struct TIMER *timer;
+	struct TASK *task = task_now();
+	int fifobuf[128], cursor_x = 8, cursor_c = COL8_000000;
+	fifo32_init(&fifo, 128, fifobuf, task);
+
+	timer  = timer_alloc();
+	timer_init(timer, &fifo, 1);
+	timer_settime(timer, 50);
 
 	for (;;) {
 		io_cli();
-		count++;
-		if (fifo32_status(&fifo) == 0) io_sti();
+		if (fifo32_status(&fifo) == 0) {
+			task_sleep(task);
+			io_sti();
+		}
 		else {
 			io_sti();
 			switch (fifo32_get(&fifo)) {
-				case 100:
-					sprintf(s, "%011d", count - count0);
-					putfonts8_str_sht(sht_win_b, 24, 28, COL8_000000, COL8_C6C6C6, s);
-					count0 = count;
-					timer_settime(timer_1s, 100);
+				case 1:
+					timer_init(timer, &fifo, 0);
+					timer_settime(timer, 50);
+					cursor_c = COL8_FFFFFF;
+					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+					break;
+				case 0:
+					timer_init(timer, &fifo, 1);
+					timer_settime(timer, 50);
+					cursor_c = COL8_000000;
+					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 					break;
 			}
 		}
 	}
 }
+
