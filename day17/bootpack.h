@@ -304,3 +304,4 @@ struct TASK *task_now();						// 返回在活动的 struct TASK 的内存地址
 void task_add(struct TASK *task);				// 在相应优先级任务管理中添加任务
 void task_remove(struct TASK *task);			// 在 struct TASKLEVEL 中删除任务
 void task_switchsub();							// 根据等级切换任务
+void task_idle();								// 闲置任务

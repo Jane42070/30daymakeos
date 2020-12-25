@@ -346,3 +346,34 @@ struct TASK {
 ![任务优先层级](./day16/priority-level-sets.png)
 
 ### day17 实现命令行窗口
+- 在 day16 中，任务 A 下面的 LEVEL 中有任务 B0~B2，因此 FIFO 为空时可以让任务 A 进入休眠状态，如果并没有启动其他任务，只有一个任务 A 的话，会怎么样呢？
+- 如果不对 A 任务进行改写，进入休眠状态后任务管理器就会寻找其他任务，但是并没有其他任务，就会进入异常
+- 改进思路
+	- 在 LEVEL 中没有任务的时候，进行 HLT
+	- 创建一个哨兵（一个永远存在的任务）
+	- 在任务管理器初始化的时候创建哨兵
+	- 哨兵的优先级为最低，10 级，不会抢占其他任务的资源，只是起监视作用
+```c
+// 哨兵
+void task_idle()
+{
+	for (;;) io_hlt();
+}
+
+// task_init() 节选
+// 哨兵初始化
+idle = task_alloc();
+idle->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024;
+idle->tss.eip = (int) &task_idle;
+idle->tss.es  = 1 * 8;
+idle->tss.cs  = 2 * 8;
+idle->tss.ss  = 1 * 8;
+idle->tss.ds  = 1 * 8;
+idle->tss.fs  = 1 * 8;
+idle->tss.gs  = 1 * 8;
+task_run(idle, MAX_TASKLEVELS - 1, 1);
+// bootpack.c 节选
+// 注释 task_run(task_b[i], 2, i + 1);
+```
+- 测试单独执行任务的情况
+![只有一个任务](./day17/alone-task.png)
