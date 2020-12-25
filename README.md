@@ -399,3 +399,12 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 	- rShift 按下时`key_shift = 2`
 	- 都按下时`key_shift = 3`
 - 通过`key_shift`的值判断需要用哪套字符编码
+- 添加大小写字母输入
+
+| 位置                  | 状态            |
+|-----------------------|-----------------|
+| binfo->leds 的第 4 位 | ScrollLock 状态 |
+| binfo->leds 的第 5 位 | NumLock 状态    |
+| binfo->leds 的第 6 位 | CapsLock 状态   |
+
+- 完成对小写字母输入支持

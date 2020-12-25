@@ -37,7 +37,7 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	int key_to = 0, key_shift = 0;
+	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7;
 
 	unsigned int memtotal;
 	char s[40];
@@ -143,6 +143,12 @@ void HariMain(void)
 					else s[0] = keytable1[i - 256];
 				}
 				else s[0] = 0;
+				if ('A' <= s[0] && s[0] <= 'Z') {// 当输入的字符为英文字符时
+					// 当 CapsLock 和 Shift 没有打开，或者都打开时
+					if (((key_leds & 4) == 0 && key_shift == 0) || ((key_leds & 4) != 0 && key_shift != 0)) {
+						s[0] += 0x20;	// 将大写字母转化为小写字母
+					}
+				}
 				if (s[0] != 0) {// 一般字符
 					// 显示一个字符就后移一次光标
 					if (key_to == 0) {// 发送给任务 A
