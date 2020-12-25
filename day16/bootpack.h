@@ -255,8 +255,10 @@ void timer_settime(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
 
 /* mtask.c */
-#define MAX_TASKS	1000	// 最大任务数量
-#define TASK_GDT0	3		// 定义从 GDT 的几号开始分配给 TSS
+#define MAX_TASKS		1000	// 最大任务数量
+#define TASK_GDT0		3		// 定义从 GDT 的几号开始分配给 TSS
+#define MAX_TASKS_LV	100		// 单个优先级任务数量
+#define MAX_TASKLEVELS	10		// 优先级数量
 /*
  * backlink ~ cr3 任务相关设置信息,任务切换时不会被写入
  * eip ~ edi 32位寄存器
@@ -270,24 +272,35 @@ struct TSS32 {
 };
 /*
  * sel(selector) 用来存放 GDT 的编号
+ * level 优先级级别
  * priority 任务优先级
  * tss 任务属性
  * */
 struct TASK {
 	int sel, flags;
-	int priority;
+	int level, priority;
 	struct TSS32 tss;
 };
 
+struct TASKLEVEL {
+	int running;	// 正在运行的任务数量
+	int now;		// 当前运行的任务序号
+	struct TASK *tasks[MAX_TASKS_LV];
+};
+
 struct TASKCTL {
-	int running;					// 正在运行的任务数量
-	int now;						// 记录当前运行的是哪个任务
-	struct TASK *tasks[MAX_TASKS];	// 正在运行的任务数组
-	struct TASK tasks0[MAX_TASKS];	// 所有的任务
+	int now_lv;								// 现在活动中的 LEVEL
+	char lv_change;							// 下次任务切换时是否需要改变 LEVEL
+	struct TASK tasks0[MAX_TASKS];			// 所有的任务
+	struct TASKLEVEL level[MAX_TASKLEVELS];	// 某优先级内的任务;
 };
 struct TASK *task_init(struct MEMMAN *memman);	// 初始化所有预分配任务
 struct TASK *task_alloc();						// 分配任务
 extern struct TIMER *task_timer;				// 任务切换计时器
-void task_run(struct TASK *task, int priority);	// 运行任务
+void task_run(struct TASK *task, int level, int priority);	// 运行任务
 void task_switch();								// 任务切换
 void task_sleep(struct TASK *task);				// 任务休眠
+struct TASK *task_now();						// 返回在活动的 struct TASK 的内存地址
+void task_add(struct TASK *task);				// 在相应优先级任务管理中添加任务
+void task_remove(struct TASK *task);			// 在 struct TASKLEVEL 中删除任务
+void task_switchsub();							// 根据等级切换任务
