@@ -25,7 +25,7 @@ int fifo32_put(struct FIFO32 *fifo, int data)
 	if (fifo->w == fifo->size) fifo->w = 0;
 	fifo->free--;
 	// 激活任务
-	if (fifo->task != 0 && fifo->task->flags != 2 ) task_run(fifo->task);
+	if (fifo->task != 0 && fifo->task->flags != 2 ) task_run(fifo->task, 0);
 	return 0;
 }
 

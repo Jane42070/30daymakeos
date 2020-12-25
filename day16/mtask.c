@@ -12,13 +12,14 @@ struct TASK *task_init(struct MEMMAN *memman)
 	taskctl = (struct TASKCTL *) memman_alloc_4k(memman, sizeof(struct TASKCTL)); // 给任务管理器分配内存
 	for (i = 0; i < MAX_TASKS; i++) {
 		taskctl->tasks0[i].flags = 0;
-		taskctl->tasks0[i].sel = (TASK_GDT0 + i) * 8;
+		taskctl->tasks0[i].sel   = (TASK_GDT0 + i) * 8;
 		set_segmdesc(gdt + TASK_GDT0 + i, 103, (int) &taskctl->tasks0[i].tss, AR_TSS32);
 	}
 	task = task_alloc();
-	task->flags = 2;	// 活动中标志
-	taskctl->running = 1;
-	taskctl->now = 0;
+	task->flags       = 2;	// 活动中标志
+	task->priority    = 2;	// 0.02 秒
+	taskctl->running  = 1;
+	taskctl->now      = 0;
 	taskctl->tasks[0] = task;
 	load_tr(task->sel);
 	task_timer = timer_alloc();
@@ -55,9 +56,10 @@ struct TASK *task_alloc()
 	return 0; // 全部正在使用
 }
 
-// 运行任务
-void task_run(struct TASK *task)
+// 运行任务，设定优先级
+void task_run(struct TASK *task, int priority)
 {
+	if (priority) task->priority = priority;
 	task->flags = 2;	// 标志设为活动中
 	// task 添加到 tasks 的末尾
 	taskctl->tasks[taskctl->running] = task;
@@ -68,12 +70,12 @@ void task_run(struct TASK *task)
 // 任务切换
 void task_switch()
 {
-	timer_settime(task_timer, 2);
-	if (taskctl->running > 1) {	// 正在运行的任务数量大于 1
-		taskctl->now++;	// 记录将要运行的任务
-		if (taskctl->now == taskctl->running) taskctl->now = 0;	// 因为索引是从 0 开始
-		farjmp(0, taskctl->tasks[taskctl->now]->sel);
-	}
+	struct TASK *task;
+	taskctl->now++;	// 记录将要运行的任务
+	if (taskctl->now == taskctl->running) taskctl->now = 0;
+	task = taskctl->tasks[taskctl->now];
+	timer_settime(task_timer, task->priority);
+	if (taskctl->running > 1) farjmp(0, task->sel);
 }
 
 // 任务休眠

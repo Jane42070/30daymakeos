@@ -269,9 +269,13 @@ struct TSS32 {
 	int ldtr, iomap;
 };
 /*
- * sel(selector) 用来存放 GDT 的编号 */
+ * sel(selector) 用来存放 GDT 的编号
+ * priority 任务优先级
+ * tss 任务属性
+ * */
 struct TASK {
 	int sel, flags;
+	int priority;
 	struct TSS32 tss;
 };
 
@@ -284,6 +288,6 @@ struct TASKCTL {
 struct TASK *task_init(struct MEMMAN *memman);	// 初始化所有预分配任务
 struct TASK *task_alloc();						// 分配任务
 extern struct TIMER *task_timer;				// 任务切换计时器
-void task_run(struct TASK *task);				// 运行任务
+void task_run(struct TASK *task, int priority);	// 运行任务
 void task_switch();								// 任务切换
 void task_sleep(struct TASK *task);				// 任务休眠
