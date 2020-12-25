@@ -82,9 +82,9 @@ void HariMain(void)
 	// sht_win
 	sht_win   = sheet_alloc(shtctl);
 	buf_win   = (unsigned char *) memman_alloc_4k(memman, 160 * 52);
-	sheet_setbuf(sht_win, buf_win, 160, 52, -1);			// 没有透明色
-	make_window8(buf_win, 160, 52, "task_a", 1);			// 创建窗口
-	make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);	// 创建输入盒子
+	sheet_setbuf(sht_win, buf_win, 144, 52, -1);			// 没有透明色
+	make_window8(buf_win, 144, 52, "task_a", 1);			// 创建窗口
+	make_textbox8(sht_win, 8, 28, 128, 16, COL8_FFFFFF);	// 创建输入盒子
 	cursor_x = 8;
 
 	// sht_mouse
@@ -96,11 +96,12 @@ void HariMain(void)
 	my = (binfo->scrny - 28 - 16) / 2;
 
 	// 设置在移动图层时进行局部画面刷新
-	sheet_slide(sht_mouse, mx, my);
-	sheet_slide(sht_win, 8, 56);
+	sheet_slide(sht_back, 0, 0);
 	sheet_slide(sht_win_b[0], 168, 56);
 	sheet_slide(sht_win_b[1],  8, 116);
 	sheet_slide(sht_win_b[2], 168,116);
+	sheet_slide(sht_win, 8, 56);
+	sheet_slide(sht_mouse, mx, my);
 	// 设置叠加显示优先级
 	sheet_updown(sht_back, 0);
 	sheet_updown(sht_win_b[0], 1);
@@ -108,15 +109,11 @@ void HariMain(void)
 	sheet_updown(sht_win_b[2], 3);
 	sheet_updown(sht_win, 4);
 	sheet_updown(sht_mouse, 5);
-	putfont8_pos(buf_back, binfo->scrnx, 0, 30, COL8_FFFFFF, "SPARK.OS");
 	sprintf(s, "memory %dMB free: %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
-	putfonts8_str(buf_back, binfo->scrnx, 0, 50, COL8_FFFFFF, s);
-	sheet_refresh(sht_back, 0, 0, sht_back->bxsize, sht_back->bysize);
+	putfonts8_str_sht(sht_back, 0, 50, COL8_FFFFFF, COL8_008484, s);
 
 	for (;;) {
 		// 计时器开始
-		// sprintf(s, "%010d", timerctl.count);
-		// putfonts8_str_sht(sht_win, 40, 28, COL8_000000, COL8_C6C6C6, s);
 		// 屏蔽其他中断
 		io_cli();
 		// 接收中断并进入等待
@@ -132,7 +129,7 @@ void HariMain(void)
 				sprintf(s, "%02X", i - 256);
 				putfonts8_str_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s);
 				if (i < 256 + 0x54) {
-					if (keytable[i - 256] != 0 && cursor_x < 144) {
+					if (keytable[i - 256] != 0 && cursor_x < 128) {
 						// 显示一个字符就后移一次光标
 						s[0] = keytable[i - 256];
 						s[1] = 0;
@@ -157,7 +154,6 @@ void HariMain(void)
 					if ((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if ((mdec.btn & 0x04) != 0) s[2] = 'C';
 					putfonts8_str_sht(sht_back, 0, 32, COL8_FFFFFF, COL8_008484, s);
-
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
@@ -218,7 +214,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 		tc = COL8_FFFFFF;
 		tbc = COL8_000084;
 	} else {
-		tc = COL8_FFFFFF;
+		tc = COL8_C6C6C6;
 		tbc = COL8_848484;
 	}
 	boxfill8(buf, xsize, COL8_C6C6C6, 0,         0,         xsize - 1, 0        );
@@ -228,7 +224,7 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 	boxfill8(buf, xsize, COL8_848484, xsize - 2, 1,         xsize - 2, ysize - 2);
 	boxfill8(buf, xsize, COL8_000000, xsize - 1, 0,         xsize - 1, ysize - 1);
 	boxfill8(buf, xsize, COL8_C6C6C6, 2,         2,         xsize - 3, ysize - 3);
-	boxfill8(buf, xsize, COL8_000084, 3,         3,         xsize - 4, 20       );
+	boxfill8(buf, xsize,		 tbc, 3,         3,         xsize - 4, 20       );
 	boxfill8(buf, xsize, COL8_848484, 1,         ysize - 2, xsize - 2, ysize - 2);
 	boxfill8(buf, xsize, COL8_000000, 0,         ysize - 1, xsize - 1, ysize - 1);
 	putfonts8_str(buf, xsize, 24, 4, tc, title);
@@ -278,7 +274,6 @@ void task_b_main(struct SHEET *sht_win_b)
 	timer_1s  = timer_alloc();
 	timer_init(timer_1s, &fifo, 100);
 	timer_settime(timer_1s, 100);
-	putfonts8_str_sht(sht_win_b, 0, 160, COL8_FFFFFF, COL8_008484, "HELLO MULTITASK");
 
 	for (;;) {
 		io_cli();

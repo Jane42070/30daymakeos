@@ -128,17 +128,6 @@ void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s)
 	sheet_refresh(sht, x, y, x + l * 8, y + 16);
 }
 
-/* 根据位置显示字符串 */
-void putfont8_pos(unsigned char *vram, int xsize, int pos,int y, char c, char *s)
-{
-	char *start = s;
-	int len = 0;
-
-	for (; *start != 0 ; start++) { len+=8; }
-	putfonts8_str(vram, xsize, xsize/2 - len/2, y, c, s);
-	return;
-}
-
 /** 鼠标指针绘制 */
 void init_mouse_cursor8(unsigned char *mouse, char bc)
 {
