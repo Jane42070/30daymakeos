@@ -387,3 +387,15 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 - 实现字符输入
 - 思路
 	- 只要在键盘按下的时候向 `console_task`的缓冲区`FIFO`发送数据即可，将`FIFO`加入`struct TASK`
+- 解决符号输入
+
+| 键位   | 按下 | 抬起 |
+|--------|------|------|
+| rShift | 0x2a | 0xaa |
+| lShift | 0x36 | 0xb6 |
+
+- 定义一个`int key_shift`
+	- lShift 按下时`key_shift = 1`
+	- rShift 按下时`key_shift = 2`
+	- 都按下时`key_shift = 3`
+- 通过`key_shift`的值判断需要用哪套字符编码

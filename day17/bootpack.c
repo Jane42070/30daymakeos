@@ -17,14 +17,28 @@ void HariMain(void)
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256], *buf_win, *buf_cons;
 	// 键盘按键字符表
-	static char keytable[0x54] = {
-		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '+', 0,   0,
+	static char keytable0[0x80] = {
+		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0,   0,
 		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', 0,   0,   'A', 'S',
 		'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', '\'', 0,   0,   '\\', 'Z', 'X', 'C', 'V',
 		'B', 'N', 'M', ',', '.', '/', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,
 		0,   0,   0,   0,   0,   0,   0,   '7', '8', '9', '-', '4', '5', '6', '+', '1',
-		'2', '3', '0', '.'
+		'2', '3', '0', '.', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		0,   0,   0,   0x5c, 0,  0,   0,   0,   0,   0,   0,   0,   0,   0x5c, 0,  0
 	};
+	static char keytable1[0x80] = {
+		0,   0,   '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', 0,   0,
+		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|',   0,   'A', 'S',
+		'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', 0,   0,   '}', 'Z', 'X', 'C', 'V',
+		'B', 'N', 'M', '<', '>', '?', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,   0,   '7', '8', '9', '-', '4', '5', '6', '+', '1',
+		'2', '3', '0', '.', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
+	};
+	int key_to = 0, key_shift = 0;
+
 	unsigned int memtotal;
 	char s[40];
 	struct TIMER *timer;
@@ -62,7 +76,6 @@ void HariMain(void)
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
 	// sht_cons
-	int key_to = 0;
 	sht_cons = sheet_alloc(shtctl);
 	buf_cons = (unsigned char *) memman_alloc_4k(memman, 256 * 165);
 	sheet_setbuf(sht_cons, buf_cons, 256, 165, -1);
@@ -125,49 +138,65 @@ void HariMain(void)
 			if (256 <= i && i <= 511) {
 				sprintf(s, "%02X", i - 256);
 				putfonts8_str_sht(sht_back, 0, 0, COL8_FFFFFF, COL8_008484, s);
-				if (i < 256 + 0x54 && keytable[i - 256] != 0) {
+				if (i < 0x80 + 256) {// 将按键编码转化为字符编码
+					if (key_shift == 0) s[0] = keytable0[i - 256];
+					else s[0] = keytable1[i - 256];
+				}
+				else s[0] = 0;
+				if (s[0] != 0) {// 一般字符
 					// 显示一个字符就后移一次光标
-					if (key_to == 0) {
+					if (key_to == 0) {// 发送给任务 A
 						if (cursor_x < 128) {
-							s[0] = keytable[i - 256];
 							s[1] = 0;
 							putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, s);
 							cursor_x += 8;
 						}
 					}
-					else fifo32_put(&task_cons->fifo, keytable[i - 256] + 256);
+					// 发送给任务终端
+					else fifo32_put(&task_cons->fifo, s[0] + 256);
 				}
-				// 退格键处理，前移一次光标
-				// 发送给任务 A
-				if (i == 256 + 0x0e ) {
-					if (key_to == 0) {
-						if (cursor_x > 8) {
-							// 用空白擦除光标后光标前移一位
-							putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ");
-							cursor_x -= 8;
+				switch (i) {
+					case 256 + 0x0e:// 退格键
+						if (key_to == 0) {
+							if (cursor_x > 8) {
+								// 用空白擦除光标后光标前移一位
+								putfonts8_str_sht(sht_win, cursor_x, 28, COL8_000000, COL8_FFFFFF, " ");
+								cursor_x -= 8;
+							}
 						}
-					}
-					else fifo32_put(&task_cons->fifo, 8 + 256);
-				}
-				// tab键处理，交换当前窗口和高度
-				if (i == 256 + 0x0f) {
-					if (key_to == 0) {
-						key_to = 1;
-						sheet_updown(sht_cons, 2);
-						sheet_updown(sht_win,  1);
-						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
-						make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 1);
-					}
-					else
-					{
-						key_to = 0;
-						sheet_updown(sht_cons, 1);
-						sheet_updown(sht_win,  2);
-						make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
-						make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 0);
-					}
-					sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
-					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+						else fifo32_put(&task_cons->fifo, 8 + 256);
+						break;
+					case 256 + 0x0f:// TAB键处理
+						if (key_to == 0) {
+							key_to = 1;
+							sheet_updown(sht_cons, 2);
+							sheet_updown(sht_win,  1);
+							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
+							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 1);
+						}
+						else
+						{
+							key_to = 0;
+							sheet_updown(sht_cons, 1);
+							sheet_updown(sht_win,  2);
+							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
+							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 0);
+						}
+						sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
+						sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+						break;
+					case 256 + 0x2a:// lShift ON
+						key_shift |= 1;
+						break;
+					case 256 + 0x36:// rShift ON
+						key_shift |= 2;
+						break;
+					case 256 + 0xaa:// lShift OFF
+						key_shift &= ~1;
+						break;
+					case 256 + 0xb6:// rShift OFF
+						key_shift &= ~2;
+						break;
 				}
 				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
