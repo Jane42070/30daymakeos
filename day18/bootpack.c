@@ -190,6 +190,7 @@ void HariMain(void)
 							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 1);
 							cursor_c = -1; // 不显示光标
 							boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+							fifo32_put(&task_cons->fifo, 2);	// 命令行窗口光标 ON
 						} else {// 切换至任务 A
 							key_to = 0;
 							sheet_updown(sht_cons, 1);
@@ -197,6 +198,7 @@ void HariMain(void)
 							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 0);
 							cursor_c = COL8_000000;	// 显示光标
+							fifo32_put(&task_cons->fifo, 3);	// 命令行窗口光标 OFF
 						}
 						sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 						sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
@@ -370,7 +372,7 @@ void console_task(struct SHEET *sheet)
 {
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	int fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
+	int i, fifobuf[128], cursor_x = 16, cursor_c = -1;
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 
 	timer  = timer_alloc();
@@ -388,19 +390,26 @@ void console_task(struct SHEET *sheet)
 			io_sti();
 		} else {
 			io_sti();
-			int i = fifo32_get(&task->fifo);
+			i = fifo32_get(&task->fifo);
 			switch (i) {
-				case 1:
+				case 3:// 开启光标
+					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, cursor_x, 28, cursor_x + 7, 43);
+					cursor_c = -1;
+					break;
+				case 2:// 关闭光标
+					cursor_c = COL8_FFFFFF;
+					break;
+				case 1:// 光标显示
 					timer_init(timer, &task->fifo, 0);
 					timer_settime(timer, 50);
-					cursor_c = COL8_FFFFFF;
+					if (cursor_c >= 0) cursor_c = COL8_FFFFFF;
 					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 					break;
-				case 0:
+				case 0:// 光标隐藏
 					timer_init(timer, &task->fifo, 1);
 					timer_settime(timer, 50);
-					cursor_c = COL8_000000;
+					if (cursor_c >= 0) cursor_c = COL8_000000;
 					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 					break;

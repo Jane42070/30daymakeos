@@ -430,3 +430,7 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 
 ### day18 终端命令
 - 在当前窗口闪烁光标，而不是全局闪烁光标，参考至 Windows
+- 实现任务 A 的光标闪烁
+- 控制命令行的光标闪烁
+
+![控制光标闪烁](./day18/blinking\ cursor.gif)
