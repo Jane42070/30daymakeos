@@ -140,8 +140,7 @@ void HariMain(void)
 		if (fifo32_status(&fifo) == 0) {
 			task_sleep(task_a);
 			io_sti();
-		}
-		else {
+		} else {
 			i = fifo32_get(&fifo);
 			io_sti();
 			// 处理键盘数据
@@ -183,23 +182,26 @@ void HariMain(void)
 						else fifo32_put(&task_cons->fifo, 8 + 256);
 						break;
 					case 256 + 0x0f:// TAB键处理
-						if (key_to == 0) {
+						if (key_to == 0) {// 切换至终端
 							key_to = 1;
 							sheet_updown(sht_cons, 2);
 							sheet_updown(sht_win,  1);
 							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
 							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 1);
-						}
-						else
-						{
+							cursor_c = -1; // 不显示光标
+							boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+						} else {// 切换至任务 A
 							key_to = 0;
 							sheet_updown(sht_cons, 1);
 							sheet_updown(sht_win,  2);
 							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 							make_wtitle8(buf_cons, sht_cons->bxsize, "terminal", 0);
+							cursor_c = COL8_000000;	// 显示光标
 						}
 						sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 						sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+						if (cursor_c >= 0) boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						break;
 					case 256 + 0x2a:// lShift ON
 						key_shift |= 1;
@@ -236,8 +238,6 @@ void HariMain(void)
 						io_out8(PORT_KEYDAT, keycmd_wait);
 						break;
 				}
-				boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
@@ -267,17 +267,21 @@ void HariMain(void)
 				// 模拟光标
 				case 1:
 					timer_init(timer, &fifo, 0);
-					cursor_c = COL8_000000;
-					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					timer_settime(timer, 50);
-					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+					if (cursor_c >= 0) {
+						cursor_c = COL8_000000;
+						boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+					}
 					break;
 				case 0:
 					timer_init(timer, &fifo, 1);
-					cursor_c = COL8_FFFFFF;
-					boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 					timer_settime(timer, 50);
-					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+					if (cursor_c >= 0) {
+						cursor_c = COL8_FFFFFF;
+						boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
+						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+					}
 					break;
 			}
 		}
@@ -386,8 +390,7 @@ void console_task(struct SHEET *sheet)
 		else {
 			io_sti();
 			int i = fifo32_get(&task->fifo);
-			switch (i) {
-				case 1:
+			switch (i) { case 1:
 					timer_init(timer, &task->fifo, 0);
 					timer_settime(timer, 50);
 					cursor_c = COL8_FFFFFF;
