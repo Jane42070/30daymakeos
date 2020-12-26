@@ -386,11 +386,11 @@ void console_task(struct SHEET *sheet)
 		if (fifo32_status(&task->fifo) == 0) {
 			task_sleep(task);
 			io_sti();
-		}
-		else {
+		} else {
 			io_sti();
 			int i = fifo32_get(&task->fifo);
-			switch (i) { case 1:
+			switch (i) {
+				case 1:
 					timer_init(timer, &task->fifo, 0);
 					timer_settime(timer, 50);
 					cursor_c = COL8_FFFFFF;
@@ -412,9 +412,7 @@ void console_task(struct SHEET *sheet)
 						putfonts8_str_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ");
 						cursor_x -= 8;
 					}
-				}
-				else
-				{
+				} else {
 					if (cursor_x < 240) {	// 如果字符未满一行，继续追加
 						s[0] = i - 256;
 						s[1] = 0;
