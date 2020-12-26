@@ -205,6 +205,9 @@ void HariMain(void)
 						if (cursor_c >= 0) boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						break;
+					case 256 + 0x1c:// 回车键
+						if (key_to != 0) fifo32_put(&task_cons->fifo, 10 + 256);	// 发送命令到终端
+						break;
 					case 256 + 0x2a:// lShift ON
 						key_shift |= 1;
 						break;
@@ -372,7 +375,7 @@ void console_task(struct SHEET *sheet)
 {
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	int i, fifobuf[128], cursor_x = 16, cursor_c = -1;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 
 	timer  = timer_alloc();
@@ -403,37 +406,44 @@ void console_task(struct SHEET *sheet)
 					timer_init(timer, &task->fifo, 0);
 					timer_settime(timer, 50);
 					if (cursor_c >= 0) cursor_c = COL8_FFFFFF;
-					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+					// 刷新光标
+					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+					sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 					break;
 				case 0:// 光标隐藏
 					timer_init(timer, &task->fifo, 1);
 					timer_settime(timer, 50);
 					if (cursor_c >= 0) cursor_c = COL8_000000;
-					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-					sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
+					// 刷新光标
+					boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+					sheet_refresh(sheet, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 					break;
 			}
 			if (256 <= i && i <= 511) {	// 通过任务A接收键盘数据
-				if (i == 8 + 256) {	// 退格键
-					// 如果存在一个以上字符，可以退格
-					if (cursor_x > 16) {
-						putfonts8_str_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, " ");
-						cursor_x -= 8;
-					}
-				} else {
-					if (cursor_x < 240) {	// 如果字符未满一行，继续追加
-						s[0] = i - 256;
-						s[1] = 0;
-						putfonts8_str_sht(sheet, cursor_x, 28, COL8_FFFFFF, COL8_000000, s);
-						cursor_x += 8;
-					}
+				switch (i) {
+					case 8 + 256:// 退格键
+						if (cursor_x > 16) {// 如果存在一个以上字符，可以退格
+							putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
+							cursor_x -= 8;
+						}
+						break;
+					case 10 + 256:// 回车键
+						if (cursor_y < 28 + 112) {
+							putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
+							cursor_y += 16;
+							putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">");
+							cursor_x = 16;
+						}
+						break;
+					default:
+						if (cursor_x < 240) {// 如果字符未满一行，继续追加
+							s[0] = i - 256;
+							s[1] = 0;
+							putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
+							cursor_x += 8;
+						}
 				}
 			}
-			// 刷新光标
-			boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-			sheet_refresh(sheet, cursor_x, 28, cursor_x + 8, 44);
 		}
 	}
 }
-

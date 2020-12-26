@@ -434,3 +434,7 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 - 控制命令行的光标闪烁
 
 ![控制光标闪烁](./day18/blinking\ cursor.gif)
+
+- 添加对回车键的支持
+
+![回车](./day18/enter.png)
