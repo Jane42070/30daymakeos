@@ -438,3 +438,5 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 - 添加对回车键的支持
 
 ![回车](./day18/enter.png)
+
+- 支持窗口滚动

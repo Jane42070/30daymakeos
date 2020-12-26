@@ -375,7 +375,7 @@ void console_task(struct SHEET *sheet)
 {
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1;
+	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1, x, y;
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 
 	timer  = timer_alloc();
@@ -428,12 +428,23 @@ void console_task(struct SHEET *sheet)
 						}
 						break;
 					case 10 + 256:// 回车键
-						if (cursor_y < 28 + 112) {
-							putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
-							cursor_y += 16;
-							putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">");
-							cursor_x = 16;
+						putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
+						if (cursor_y < 28 + 112) cursor_y += 16;
+						else {// 滚动
+							for (y = 28; y < 28 + 112; y++) {// 将终端中的像素上移一行
+								for (x = 8; x < 8 + 240; x++) {
+									sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
+								}
+							}
+							for (y = 28 + 112; y < 28 + 128; y++) {// 刷新最下面的一行，用黑色填充
+								for (x = 8; x < 8 + 240; x++) {
+									sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+								}
+							}
+							sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
 						}
+						putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">");
+						cursor_x = 16;
 						break;
 					default:
 						if (cursor_x < 240) {// 如果字符未满一行，继续追加
