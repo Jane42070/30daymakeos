@@ -456,3 +456,5 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 | help | 列出所有命令 |
 | ls   | 列出所有文件 |
 | ...  | ...          |
+
+![day18](./day18/day18.gif)
