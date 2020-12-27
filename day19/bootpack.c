@@ -46,7 +46,7 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1, keycmd_time = 0;
 
 	unsigned int memtotal;
 	char s[40];
@@ -244,17 +244,16 @@ void HariMain(void)
 						keycmd_wait = -1;
 						break;
 					case 256 + 0xfe:// 键盘没有成功接收到数据
+						if (keycmd_time == 5) break;
 						wait_KBC_sendready();
 						io_out8(PORT_KEYDAT, keycmd_wait);
+						keycmd_time += 1;
 						break;
 				}
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
 					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
 					if ((mdec.btn & 0x01) != 0) sheet_slide(sht_win, mx - 80, my - 8);
-					// s[1] = 'L';
-					// if ((mdec.btn & 0x02) != 0) s[3] = 'R';
-					// if ((mdec.btn & 0x04) != 0) s[2] = 'C';
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
