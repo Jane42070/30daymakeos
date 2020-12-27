@@ -1,5 +1,12 @@
 #include "bootpack.h"
 #define KEYCMD_LED 0xed
+// 文件信息
+struct FILEINFO {
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
 
 void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
@@ -369,6 +376,7 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	struct TASK *task = task_now();
 	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1, x, y;
 	fifo32_init(&task->fifo, 128, fifobuf, task);
+	struct FILEINFO *finfo = (struct FILEINFO *) (ADR_DISKING + 0x002600);
 
 	timer  = timer_alloc();
 	timer_init(timer, &task->fifo, 1);
@@ -441,6 +449,21 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 							cursor_y = 12;
 						} else if (strcmp(cmdline, "uname") == 0) {
 							putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Spark");
+						} else if (strcmp(cmdline, "ls") == 0) {
+							for (x = 0; x < 224; x++) {
+								if (finfo[x].name[0] == 0x00) break;
+								if (finfo[x].name[0] != 0xe5) {
+									if ((finfo[x].type & 0x18) == 0) {
+										sprintf(s, "filename.ext    %7d", finfo[x].size);
+										for (y = 0; y < 8; y++) s[y] = finfo[x].name[y];
+										s[9]  = finfo[x].ext[0];
+										s[10] = finfo[x].ext[1];
+										s[11] = finfo[x].ext[2];
+										putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, s);
+										cursor_y = cons_newline(cursor_y, sheet);
+									}
+								}
+							}
 						} else if (cmdline[0] != 0) putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Unkown Command");
 						if (cursor_y < 28 + 112) cursor_y += 16;
 						else {// 滚动

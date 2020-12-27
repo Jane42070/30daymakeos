@@ -7,13 +7,15 @@
  * vmode 显示模式
  * reserve 反转
  * */
-struct BOOTINFO {
+struct BOOTINFO { // 0x0ff0 ~ 0x0fff
 	char cyls, leds, vmode, reserve;
 	short scrnx, scrny;
 	unsigned char *vram;
 };
 // 定义启动信息存放的内存地址
 #define ADR_BOOTINFO 0x00000ff0
+// 数据存放在 0x00100000 ~ 0x00267fff
+#define ADR_DISKING  0x00100000
 
 /* naskfunc.nas */
 void io_hlt(void);
