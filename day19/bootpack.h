@@ -15,7 +15,7 @@ struct BOOTINFO { // 0x0ff0 ~ 0x0fff
 // 定义启动信息存放的内存地址
 #define ADR_BOOTINFO 0x00000ff0
 // 数据存放在 0x00100000 ~ 0x00267fff
-#define ADR_DISKING  0x00100000
+#define ADR_DISKIMG  0x00100000
 
 /* naskfunc.nas */
 void io_hlt(void);
