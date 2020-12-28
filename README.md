@@ -512,3 +512,12 @@ address = clustno * 512 + 0x003e00
 - 忽略回车符
 - 添加对 FAT 的支持
 - 整理代码
+
+- 第一个应用程序
+	- HALT - 停止运行！
+```asm
+[BITS 32]
+fin:
+	HLT
+	JMP fin
+```
