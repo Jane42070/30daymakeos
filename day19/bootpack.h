@@ -309,3 +309,23 @@ void task_add(struct TASK *task);				// 在相应优先级任务管理中添加�
 void task_remove(struct TASK *task);			// 在 struct TASKLEVEL 中删除任务
 void task_switchsub();							// 根据等级切换任务
 void task_idle();								// 闲置任务
+
+/* window.c */
+void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char act);
+void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
+void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
+
+/* console.c */
+void console_task(struct SHEET *sheet, unsigned int memtotal);
+int cons_newline(int cursor_y, struct SHEET *sheet);
+
+/* file.c */
+// 文件信息
+struct FILEINFO {
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
+void file_readfat(int *fat, unsigned char *img);
+void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
