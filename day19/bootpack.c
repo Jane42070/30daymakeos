@@ -380,7 +380,7 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	timer  = timer_alloc();
 	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
-	char s[30] = {0}, cmdline[30] = {0};
+	char s[30] = {0}, cmdline[30] = {0}, *p;
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	// 显示提示符
 	putfonts8_str_sht(sheet, 8, 28, COL8_FFFFFF, COL8_000000, ">");
@@ -463,7 +463,44 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 									}
 								}
 							}
+						} else if (cmdline[0] == 'c' && cmdline[1] == 'a' && cmdline[2] == 't' && cmdline[3] == ' ') {// cat 命令
+							for (y = 0; y < 11; y++) s[y] = ' ';
+							y = 0;
+							for (x = 4; y < 11 && cmdline[x] != 0; x++) {
+								if (cmdline[x] == '.' && y <= 8) y = 8;
+								else {
+									s[y] = cmdline[x];
+									if ('a' <= s[y] && s[y] <= 'z') s[y] -= 0x20;
+									y++;
+								}
+							}
+							for (x = 0; x < 224; ) {// 寻找文件
+								if (finfo[x].name[0] == 0x00) break;
+								if ((finfo[x].type & 0x18) == 0) {
+									for (y = 0; y < 11; y++) {
+										if (finfo[x].name[y] != s[y]) goto cat_next_file;
+									}
+									break;
+								}
+cat_next_file:
+								x++;
+							}
+							if (x < 224 && finfo[x].name[0] != 0x00) {// 找到文件
+								y = finfo[x].size;
+								p = (char *) (finfo[x].clustno * 512 + 0x003e00 + ADR_DISKING);
+								cursor_x = 8;
+								for (x = 0; x < y; x++) {// 逐字输出
+									s[0] = p[x];
+									s[1] = 0;
+									putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
+									cursor_x += 8;
+									if (cursor_x == 8 + 240) {// 达到右边界换行
+										cursor_x = 8;
+										cursor_y = cons_newline(cursor_y, sheet);
+									}								}
+							} else putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File not found"); // 没有找到文件
 						} else if (cmdline[0] != 0) putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Unkown Command");
+
 						if (cursor_y < 28 + 112) cursor_y += 16;
 						else {// 滚动
 							for (y = 28; y < 28 + 112; y++) {// 将终端中的像素上移一行
