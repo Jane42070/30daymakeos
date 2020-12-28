@@ -463,7 +463,8 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 									}
 								}
 							}
-						} else if (cmdline[0] == 'c' && cmdline[1] == 'a' && cmdline[2] == 't' && cmdline[3] == ' ') {// cat 命令
+							cursor_y -= 16;
+						} else if (strncmp(cmdline, "cat ", 4) == 0) {// cat 命令
 							for (y = 0; y < 11; y++) s[y] = ' ';
 							y = 0;
 							for (x = 4; y < 11 && cmdline[x] != 0; x++) {
@@ -492,12 +493,37 @@ cat_next_file:
 								for (x = 0; x < y; x++) {// 逐字输出
 									s[0] = p[x];
 									s[1] = 0;
-									putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
-									cursor_x += 8;
-									if (cursor_x == 8 + 240) {// 达到右边界换行
-										cursor_x = 8;
-										cursor_y = cons_newline(cursor_y, sheet);
-									}								}
+									switch (s[0]) {
+										case 0x09:// 制表符
+											for (;;) {
+												putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, " ");
+												cursor_x += 8;
+												if (cursor_x == 8 + 240) {
+													cursor_x = 8;
+													cursor_y = cons_newline(cursor_y, sheet);
+												}
+												// 被 32 整除则 break
+												// cursor_x - 8 因为命令行边框有 8 个像素
+												// 制表符为 4 个空格，0x1f = 32
+												if (((cursor_x - 8) & 0x1f) == 0) break;
+											}
+											break;
+										case 0x0a:// 换行
+											cursor_x = 8;
+											cursor_y = cons_newline(cursor_y, sheet);
+											break;
+										case 0x0d:// 回车不做处理
+											break;
+										default:  // 一般字符
+											putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
+											cursor_x += 8;
+											if (cursor_x == 8 + 240) {// 达到右边界换行
+												cursor_x = 8;
+												cursor_y = cons_newline(cursor_y, sheet);
+											}
+									}
+								}
+								cursor_y -= 16;
 							} else putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File not found"); // 没有找到文件
 						} else if (cmdline[0] != 0) putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Unkown Command");
 
