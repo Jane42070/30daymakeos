@@ -463,3 +463,39 @@ task_run(idle, MAX_TASKLEVELS - 1, 1);
 
 ### day19 应用
 - cat 命令
+
+```c
+// 文件信息
+struct FILEINFO {
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
+```
+
+- 通过二进制编辑器发现
+
+| 文件名       | 数据  | clustno | 地址     |
+|--------------|-------|---------|----------|
+| HARIBOTE.SYS | 02 00 | 0x0002  | 0x004200 |
+| IPL10.NAS    | 39 00 | 0x0039  | 0x00b000 |
+| MAKE.BAT     | 3F 00 | 0x003f  | 0x00bc00 |
+
+```c
+clustno = 0x0002 -> 0x004200
+clustno = 0x0039 -> 0x00b000
+clustno = 0x003f -> 0x00bc00
+// 六个簇
+0x003f - 0x0039 = 6
+0x00bc00 - 0x00b00 = 0xc00
+// 六个扇区
+0xc00 / 6 = 512
+// 得出
+address = clustno * 512 + 0x003e00
+0x0002 * 512 + 0x004200 = 0x000400 + 0x003e00 = 0x004200
+0x0039 * 512 + 0x00b000 = 0x007200 + 0x003e00 = 0x00b000
+0x003f * 512 + 0x00bc00 = 0x007e00 + 0x003e00 = 0x00bc00
+```
+
+![cat](./day19/cat.png)
