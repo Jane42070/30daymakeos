@@ -521,3 +521,8 @@ fin:
 	HLT
 	JMP fin
 ```
+- 将环境改为 Arch linux
+- 安装运行 32 位程序的 gcc 库
+```shell
+sudo pacman -S lib32-gcc-libs, lib32-glibc
+```
