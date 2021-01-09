@@ -64,10 +64,10 @@ haribote.img : ipl10.bin haribote.sys halt.hrb Makefile
 	$(CC1) -o $*.gas $*.c
 
 %.nas : %.gas Makefile
-	$(GAS2NASK) $*.gas $*.nas
+	$(GAS2NASK) $*.gas $*.asm
 
 %.obj : %.nas Makefile
-	$(NASK) $*.nas $*.obj $*.lst
+	$(NASK) $*.asm $*.obj $*.lst
 
 # 其他指令
 
