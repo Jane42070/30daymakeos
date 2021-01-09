@@ -14,11 +14,8 @@ BIM2HRB  = $(TOOLPATH)bim2hrb.exe
 RULEFILE = $(TOOLPATH)haribote/haribote.rul
 EDIMG    = $(TOOLPATH)edimg.exe
 IMGTOL   = $(TOOLPATH)imgtol.com
-
-#COPY     = copy
-COPY     = cp
-#DEL      = del
-DEL      = rm
+COPY     = copy
+DEL      = del
 
 # 默认动作
 
@@ -50,10 +47,8 @@ bootpack.hrb : bootpack.bim Makefile
 halt.hrb : halt.asm Makefile
 	$(NASK) halt.asm halt.hrb halt.lst
 
-#haribote.sys : asmhead.bin bootpack.hrb Makefile
-#	copy /B asmhead.bin+bootpack.hrb haribote.sys
 haribote.sys : asmhead.bin bootpack.hrb Makefile
-	cat asmhead.bin bootpack.hrb > haribote.sys
+	copy /B asmhead.bin+bootpack.hrb haribote.sys
 
 haribote.img : ipl10.bin haribote.sys halt.hrb Makefile
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
@@ -79,14 +74,10 @@ haribote.img : ipl10.bin haribote.sys halt.hrb Makefile
 img :
 	$(MAKE) haribote.img
 
-# run :
-#     $(MAKE) img
-#     $(COPY) haribote.img ..\tolset\z_tools\qemu\fdimage0.bin
-#     $(MAKE) -C ../tolset/z_tools/qemu
-
 run :
-	../tolset/z_tools/make.exe img
-	qemu-system-x86_64 -m 32 -fda haribote.img
+	$(MAKE) img
+	$(COPY) haribote.img ..\tolset\z_tools\qemu\fdimage0.bin
+	$(MAKE) -C ../tolset/z_tools/qemu
 
 install :
 	$(MAKE) img

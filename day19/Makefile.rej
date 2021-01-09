@@ -1,0 +1,19 @@
+--- Makefile	2005-09-25 19:03:04.520847744 +0900
++++ Makefile	2005-09-25 19:01:31.341013232 +0900
+@@ -75,10 +80,13 @@
+ img :
+ 	$(MAKE) haribote.img
+ 
++#run :
++#	$(MAKE) img
++#	$(COPY) haribote.img ..\z_tools\qemu\fdimage0.bin
++#	$(MAKE) -C ../z_tools/qemu
+ run :
+-	$(MAKE) img
+-	$(COPY) haribote.img ..\z_tools\qemu\fdimage0.bin
+-	$(MAKE) -C ../z_tools/qemu
++	../z_tools/make.exe img
++	qemu -m 32 -localtime -std-vga -fda haribote.img
+ 
+ install :
+ 	$(MAKE) img
