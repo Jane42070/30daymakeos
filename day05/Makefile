@@ -22,23 +22,23 @@ default :
 
 # 镜像文件生成
 
-ipl10.bin : ipl10.nas Makefile
-	$(NASK) ipl10.nas ipl10.bin ipl10.lst
+ipl10.bin : ipl10.asm Makefile
+	$(NASK) ipl10.asm ipl10.bin ipl10.lst
 
-asmhead.bin : asmhead.nas Makefile
-	$(NASK) asmhead.nas asmhead.bin asmhead.lst
+asmhead.bin : asmhead.asm Makefile
+	$(NASK) asmhead.asm asmhead.bin asmhead.lst
 
 bootpack.gas : bootpack.c Makefile
 	$(CC1) -o bootpack.gas bootpack.c
 
-bootpack.nas : bootpack.gas Makefile
-	$(GAS2NASK) bootpack.gas bootpack.nas
+bootpack.asm : bootpack.gas Makefile
+	$(GAS2NASK) bootpack.gas bootpack.asm
 
-bootpack.obj : bootpack.nas Makefile
-	$(NASK) bootpack.nas bootpack.obj bootpack.lst
+bootpack.obj : bootpack.asm Makefile
+	$(NASK) bootpack.asm bootpack.obj bootpack.lst
 
-naskfunc.obj : naskfunc.nas Makefile
-	$(NASK) naskfunc.nas naskfunc.obj naskfunc.lst
+naskfunc.obj : naskfunc.asm Makefile
+	$(NASK) naskfunc.asm naskfunc.obj naskfunc.lst
 
 hankaku.bin : hankaku.txt Makefile
 	$(MAKEFONT) hankaku.txt hankaku.bin
@@ -82,7 +82,7 @@ clean :
 	-$(DEL) *.lst
 	-$(DEL) *.gas
 	-$(DEL) *.obj
-	-$(DEL) bootpack.nas
+	-$(DEL) bootpack.asm
 	-$(DEL) bootpack.map
 	-$(DEL) bootpack.bim
 	-$(DEL) bootpack.hrb

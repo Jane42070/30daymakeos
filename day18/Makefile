@@ -24,11 +24,11 @@ default :
 
 # 镜像文件生成
 
-ipl10.bin : ipl10.nas Makefile
-	$(NASK) ipl10.nas ipl10.bin ipl10.lst
+ipl10.bin : ipl10.asm Makefile
+	$(NASK) ipl10.asm ipl10.bin ipl10.lst
 
-asmhead.bin : asmhead.nas Makefile
-	$(NASK) asmhead.nas asmhead.bin asmhead.lst
+asmhead.bin : asmhead.asm Makefile
+	$(NASK) asmhead.asm asmhead.bin asmhead.lst
 
 hankaku.bin : hankaku.txt Makefile
 	$(MAKEFONT) hankaku.txt hankaku.bin
@@ -51,7 +51,7 @@ haribote.img : ipl10.bin haribote.sys Makefile
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
-		copy from:ipl10.nas to:@: \
+		copy from:ipl10.asm to:@: \
 		copy from:make.bat to:@: \
 		imgout:haribote.img
 
@@ -59,11 +59,11 @@ haribote.img : ipl10.bin haribote.sys Makefile
 %.gas : %.c Makefile
 	$(CC1) -o $*.gas $*.c
 
-%.nas : %.gas Makefile
-	$(GAS2NASK) $*.gas $*.nas
+%.asm : %.gas Makefile
+	$(GAS2NASK) $*.gas $*.asm
 
-%.obj : %.nas Makefile
-	$(NASK) $*.nas $*.obj $*.lst
+%.obj : %.asm Makefile
+	$(NASK) $*.asm $*.obj $*.lst
 
 # 其他指令
 
