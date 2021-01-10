@@ -181,7 +181,7 @@ cat_next_file:
 halt_next_file:
 								x++;
 							}
-							if (x < 224 & finfo[x].name[0] != 0x00) {// 找到文件
+							if (x < 224 && finfo[x].name[0] != 0x00) {// 找到文件
 								p = (char *) memman_alloc_4k(memman, finfo[x].size);
 								file_loadfile(finfo[x].clustno, finfo[x].size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 								set_segmdesc(gdt + 1003, finfo[x].size - 1, (int) p, AR_CODE32_ER);
