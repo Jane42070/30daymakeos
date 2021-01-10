@@ -288,6 +288,7 @@ void cmd_uname(struct TERM *term, char *cmdline)
 				term_putstr(term, "uname: extra operand");
 				term_newline(term);
 				term_putstr(term, "Try 'uname -h' for more information");
+				term_newline(term);
 		}
 	} else if (strcmp(cmdline, "uname") == 0) {
 		term_putstr(term, kernel_name);
