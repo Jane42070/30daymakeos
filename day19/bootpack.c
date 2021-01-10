@@ -239,7 +239,6 @@ void HariMain(void)
 				}
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
-					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
 					if ((mdec.btn & 0x01) != 0) sheet_slide(sht_win, mx - 80, my - 8);
 					// 鼠标移动
 					mx += mdec.x;
