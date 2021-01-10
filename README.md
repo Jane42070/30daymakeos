@@ -531,6 +531,9 @@ sudo pacman -S lib32-gcc-libs, lib32-glibc
 ```
 
 ### day20 API
+- 整理代码
+	- `console.c -> terminal.c`
+	- 分割函数功能
 
 ## TODO
 ### 终端
