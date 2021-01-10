@@ -318,6 +318,7 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 /* console.c */
 void console_task(struct SHEET *sheet, unsigned int memtotal);
 int cons_newline(int cursor_y, struct SHEET *sheet);
+int cons_scroll(struct SHEET *sheet);
 
 /* file.c */
 // 文件信息
