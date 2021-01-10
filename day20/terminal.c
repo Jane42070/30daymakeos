@@ -19,6 +19,7 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	term.cur_x = 8;
 	term.cur_y = 28;
 	term.cur_c = -1;
+	*((int *) 0x0fec) = (int) &term;
 
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 	timer = timer_alloc();
