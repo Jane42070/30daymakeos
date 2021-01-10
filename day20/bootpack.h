@@ -315,10 +315,23 @@ void make_window8(unsigned char *buf, int xsize, int ysize, char *title, char ac
 void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 
-/* console.c */
-void console_task(struct SHEET *sheet, unsigned int memtotal);
-int cons_newline(int cursor_y, struct SHEET *sheet);
-int cons_scroll(struct SHEET *sheet);
+/* terminal.c */
+// 终端
+struct TERM {
+	struct SHEET *sht;
+	int cur_x, cur_y, cur_c;
+};
+void term_task(struct SHEET *sheet, unsigned int memtotal);
+void term_newline(struct TERM *term);
+void term_putchar(struct TERM *term, int c, char mv);
+void term_putstr(struct TERM *term, char *s);
+void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtotal);
+void cmd_mem(struct TERM *term, unsigned int memtotal);
+void cmd_clear(struct TERM *term);
+void cmd_ls(struct TERM *term);
+void cmd_cat(struct TERM *term, int *fat, char *cmdline);
+void cmd_uname(struct TERM *term, char *cmdline);
+void cmd_halt(struct TERM *term, int *fat);
 
 /* file.c */
 // 文件信息
@@ -330,3 +343,4 @@ struct FILEINFO {
 };
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
