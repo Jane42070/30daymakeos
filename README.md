@@ -17,6 +17,8 @@
 		* [day17 实现命令行窗口](#day17-实现命令行窗口)
 		* [day18 终端命令](#day18-终端命令)
 		* [day19 应用](#day19-应用)
+	* [TODO](#todo)
+		* [终端](#终端)
 
 <!-- vim-markdown-toc -->
 
@@ -526,3 +528,10 @@ fin:
 ```shell
 sudo pacman -S lib32-gcc-libs, lib32-glibc
 ```
+
+## TODO
+### 终端
+1. 支持补全
+2. 支持指令回滚
+3. 支持命令打开应用
+4. 支持 vi mode
