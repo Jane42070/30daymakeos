@@ -1,7 +1,7 @@
 #include "bootpack.h"
 /* sys info */
 static char *kernel_release = "0.2.0";
-static char *kernel_version = "2020 1-10 22:26";
+static char *kernel_version = "2020 1-11 01:26";
 static char *kernel_name    = "Spark";
 static char *architecture   = "i386";
 static char *operating_sys  = "CLAY/Spark";
