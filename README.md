@@ -283,7 +283,7 @@ BX= 画面模式号码
 - `struct TSS` 任务状态段
 - 通过`JMP 3 * 8:0x00000000 far jump`
 
-```asm
+```nasm
 JMP 0x1234
 ; 就是
 MOV EIP,0x1234
@@ -518,7 +518,7 @@ address = clustno * 512 + 0x003e00
 
 - 第一个应用程序
 	- HALT - 停止运行！
-```asm
+```nasm
 [BITS 32]
 fin:
 	HLT
@@ -536,6 +536,32 @@ sudo pacman -S lib32-gcc-libs, lib32-glibc
 	- 分割函数功能
 
 ![uname is not uname !](./day20/uname.png)
+
+- 编写显示单个字符的 API
+	- 如果直接调用`terminal.c`的`term_putchar()`需要手动查找其函数的地址，且需要在调用函数之前将参数推入栈中，非常麻烦
+	- 通过用汇编`naskfunc.asm`编写一个推入栈的函数并且调用`term_putchar()`方法（封装），只需要知道`_asm_term_puchar`的地址就行了
+
+```nasm
+; naskfunc.asm
+_asm_term_putchar:
+		PUSH	1
+		AND		EAX,0xff	; 将 AH 和 EAX 的高位置 0，将 EAX 置为已存入字符编码的状态
+		PUSH	EAX
+		PUSH	DWORD [0x0fec]	; 读取内存并 PUSH 该值
+		CALL	_term_putchar
+		ADD		ESP,12		; 将栈中的数据丢弃
+		RETF
+
+; halt.asm
+[BITS 32]
+	MOV		AL,'A'
+	CALL	2*8:0xBFC	; 应用程序对 API 执行 CALL 的时候，要加上操作系统的段号，使用 farcall 并将 naskfunc.nas 中 RET 改为 RETF
+fin:
+	HLT
+	JMP fin
+```
+
+![单个字符 API](./day20/asm_putchar.png)
 
 ## TODO
 ### 终端
