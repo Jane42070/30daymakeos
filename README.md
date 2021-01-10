@@ -561,7 +561,7 @@ fin:
 	JMP fin
 ```
 
-![Demo](./day20/Peek\ 2021-01-11\ 01-38.gif)
+![Demo](./day20/demo.gif)
 
 ## TODO
 ### 终端
