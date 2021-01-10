@@ -4,13 +4,13 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 {
 	struct TIMER *timer;
 	struct TASK *task = task_now();
-	char history[100] = {0};
+	char history[128] = {0};
 	int i, fifobuf[128], cursor_x = 16, cursor_y = 28, cursor_c = -1, x, y;
 	fifo32_init(&task->fifo, 128, fifobuf, task);
 	struct FILEINFO *finfo = (struct FILEINFO *) (ADR_DISKIMG + 0x002600);
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
 
-	timer  = timer_alloc();
+	timer = timer_alloc();
 	timer_init(timer, &task->fifo, 1);
 	timer_settime(timer, 50);
 	char s[30] = {0}, cmdline[30] = {0}, *p;
@@ -189,24 +189,9 @@ halt_next_file:
 								memman_free_4k(memman, (int) p, finfo[x].size);
 								// 没有找到文件
 							} else putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "File not found");
-								
-							
 						} else if (cmdline[0] != 0) putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, "Unkown Command");
-
 						if (cursor_y < 28 + 112) cursor_y += 16;
-						else {// 滚动
-							for (y = 28; y < 28 + 112; y++) {// 将终端中的像素上移一行
-								for (x = 8; x < 8 + 240; x++) {
-									sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
-								}
-							}
-							for (y = 28 + 112; y < 28 + 128; y++) {// 刷新最下面的一行，用黑色填充
-								for (x = 8; x < 8 + 240; x++) {
-									sheet->buf[x + y * sheet->bxsize] = COL8_000000;
-								}
-							}
-							sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
-						}
+						else cons_scroll(sheet);
 						putfonts8_str_sht(sheet, 8, cursor_y, COL8_FFFFFF, COL8_000000, ">");
 						cursor_x = 16;
 						break;
@@ -218,6 +203,10 @@ halt_next_file:
 							putfonts8_str_sht(sheet, cursor_x, cursor_y, COL8_FFFFFF, COL8_000000, s);
 							cursor_x += 8;
 						}
+						// else {
+						//     cursor_y = cons_newline(cursor_y, sheet);
+						//     cursor_x = 8;
+						// }
 				}
 			}
 		}
@@ -243,4 +232,21 @@ int cons_newline(int cursor_y, struct SHEET *sheet)
 		sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
 	}
 	return cursor_y;
+}
+
+// 滚动
+int cons_scroll(struct SHEET *sheet)
+{
+	int x, y;
+	for (y = 28; y < 28 + 112; y++) {// 将终端中的像素上移一行
+		for (x = 8; x < 8 + 240; x++) {
+			sheet->buf[x + y * sheet->bxsize] = sheet->buf[x + (y + 16) * sheet->bxsize];
+		}
+	}
+	for (y = 28 + 112; y < 28 + 128; y++) {// 刷新最下面的一行，用黑色填充
+		for (x = 8; x < 8 + 240; x++) {
+			sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+		}
+	}
+	sheet_refresh(sheet, 8, 28, 8 + 240, 28 + 128);
 }
