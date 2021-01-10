@@ -535,6 +535,8 @@ sudo pacman -S lib32-gcc-libs, lib32-glibc
 	- `console.c -> terminal.c`
 	- 分割函数功能
 
+![uname is not uname !](./day20/uname.png)
+
 ## TODO
 ### 终端
 1. 支持补全
