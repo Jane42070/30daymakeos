@@ -241,6 +241,7 @@ void cmd_cat(struct TERM *term, int *fat, char *cmdline)
 }
 
 // uname 命令
+// TODO: 做成应用而不是命令
 void cmd_uname(struct TERM *term, char *cmdline)
 {
 	char s[30] = {0};
