@@ -561,7 +561,7 @@ fin:
 	JMP fin
 ```
 
-![单个字符 API](./day20/asm_putchar.png)
+![Demo](./day20/Peek\ 2021-01-11\ 01-38.gif)
 
 ## TODO
 ### 终端
