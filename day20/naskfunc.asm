@@ -216,10 +216,11 @@ _farcall:		; void farcall(int eip, int cs)
 		RET
 
 _asm_term_putchar:
+		STI		; 开启中断
 		PUSH	1
 		AND		EAX,0xff	; 将 AH 和 EAX 的高位置 0，将 EAX 置为已存入字符编码的状态
 		PUSH	EAX
 		PUSH	DWORD [0x0fec]	; 读取内存并 PUSH 该值
 		CALL	_term_putchar
 		ADD		ESP,12		; 将栈中的数据丢弃
-		RETF
+		IRETD
