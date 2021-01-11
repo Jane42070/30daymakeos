@@ -35,6 +35,7 @@ void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
+void asm_term_putchar();
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 
 /** 装载段号寄存器函数
