@@ -29,6 +29,7 @@ void io_store_eflags(int eflags);
 int load_cr0(void);
 void load_tr(int tr);
 void farjmp(int eip, int cs);
+void farcall(int eip, int cs);
 void store_cr0(int cr0);
 void asm_inthandler20(void);
 void asm_inthandler21(void);
