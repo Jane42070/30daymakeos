@@ -608,6 +608,10 @@ fin:
 
 ![nameapp](./day20/nameapp.png)
 
+- 寄存器问题
+	- 在修改 hello.asm 显示字符串的时候只显示第一个字符，因为在调用 0x40 中断的时候 ECX 寄存器的值发生了变化，应该是_term_putchar 改动了 ECX 的值
+	- 加上 PUSHAD 和 POPAD 确保可以将全部寄存器的值还原，这样程序就能正常运行
+
 ## TODO
 ### 终端
 1. 支持补全
