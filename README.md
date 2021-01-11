@@ -612,6 +612,68 @@ fin:
 	- 在修改 hello.asm 显示字符串的时候只显示第一个字符，因为在调用 0x40 中断的时候 ECX 寄存器的值发生了变化，应该是_term_putchar 改动了 ECX 的值
 	- 加上 PUSHAD 和 POPAD 确保可以将全部寄存器的值还原，这样程序就能正常运行
 
+- 创建显示字符串的 API
+	- 思路：像单字符显示 API 一样
+	- 借鉴 BIOS 的调用方式，在寄存器中存入功能号，使得 1 个 INT 可以选择调用不同的函数
+	- BIOS 中，存放功能号的函数是 AH，最多只能存入 256 个 API 函数，改用 EDX 存放功能号，可以设置多达 42 亿个 API 函数
+
+| 功能号 | 函数         | 寄存器                             |
+|--------|--------------|------------------------------------|
+| 1      | 显示单个字符 | AL = 字符编码                      |
+| 2      | 显示字符串 0 | EBX = 字符串地址                   |
+| 3      | 显示字符串 1 | EBX = 字符串地址，ECX = 字符串长度 |
+
+```nasm
+_asm_hrb_api:
+	STI 	; 开启中断
+	PUSHAD	; 用于保存寄存器值的 PUSH
+	PUSHAD	; 用于向 hrb_api 传值的 PUSH
+	CALL	_hrb_api
+	ADD 	ESP,32
+	POPAD
+	IRETD
+```
+- 用 C 语言编写 API 处理程序
+	- 用 switch 语句通过判断 EDX 跳转到对应 API
+	- 通过_asm_hrb_api 得到相应寄存器的值，进行操作
+- 将 INT 0x40 改为调用_asm_hrb_api
+- 改写应用程序，定义需要调用的 API
+
+```nasm
+; hello.asm
+[INSTRSET "i486p"]
+[BITS 32]
+	MOV		ECX,msg
+	MOV		EDX,1
+putloop:
+	MOV		AL,[CS:ECX]
+	CMP		AL,0
+	JE		fin
+	INT		0x40
+	ADD		ECX,1
+	JMP		putloop
+fin:
+	RETF
+msg:
+	DB		"hello",0
+
+; hello2.asm 使用系统内置的字符串显示 API term_putstr()
+[INSTRSET "i486p"]
+[BITS 32]
+	MOV		EDX,2
+	MOV		ECX,msg
+	INT		0x40
+	RETF
+msg:
+	DB		"hello2",0
+```
+- 遇到了 BUG，hello.hrb 运行正常，但 hello2.hrb 出现异常，内存段的问题
+	- 显示单个字符时，用 [CS:ECX] 的方式制定了 CS（代码段寄存器），因此可以成功读取 msg 的内容
+	- 但是在显示字符串时，由于无法指定段地址，程序认为是 DS 而从完全错误的内存地址中读取了内容
+	- 思路：cmd_app() 知道代码段的内存地址，将代码段地址设置为 0xfe8，然后在 hrb_api 的字符串显示中加上 0xfe8
+
+![day20](./day20/day20.gif)
+
 ## TODO
 ### 终端
 1. 支持补全
