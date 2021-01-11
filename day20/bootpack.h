@@ -333,7 +333,7 @@ void cmd_clear(struct TERM *term);
 void cmd_ls(struct TERM *term);
 void cmd_cat(struct TERM *term, int *fat, char *cmdline);
 void cmd_uname(struct TERM *term, char *cmdline);
-void cmd_halt(struct TERM *term, int *fat);
+int cmd_app(struct TERM *term, int *fat, char *cmdline);
 
 /* file.c */
 // 文件信息
