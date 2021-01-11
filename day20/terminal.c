@@ -155,8 +155,6 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_mem(term, memtotal);
 	} else if (strcmp(cmdline, "ls") == 0) {
 		cmd_ls(term);
-	} else if (strcmp(cmdline, "halt") == 0) {
-		cmd_halt(term, fat);
 	} else if (strcmp(cmdline, "clear") == 0) {
 		cmd_clear(term);
 	} else if (strcmp(cmdline, "uname") == 0) {
@@ -165,11 +163,13 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_cat(term, fat, cmdline);
 	} else if (strncmp(cmdline, "uname ", 6) == 0) {
 		cmd_uname(term, cmdline);
-	} else if (cmdline[0] != 0) {// 不是命令，也不是空行
-		char ret[80] = {0};
-		sprintf(ret, "Unknown Command: %s", cmdline);
-		term_putstr(term, ret);
-		term_newline(term);
+	} else if (cmdline[0] != 0) {
+		if (cmd_app(term, fat, cmdline) == 0) {// 不是命令，也不是空行
+			char ret[80] = {0};
+			sprintf(ret, "Unknown Command: %s", cmdline);
+			term_putstr(term, ret);
+			term_newline(term);
+		}
 	}
 }
 
@@ -295,21 +295,36 @@ void cmd_uname(struct TERM *term, char *cmdline)
 	}
 }
 
-// halt 应用
-void cmd_halt(struct TERM *term, int *fat)
+// 启动应用
+int cmd_app(struct TERM *term, int *fat, char *cmdline)
 {
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	struct FILEINFO *finfo = file_search("halt.hrb", (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+	struct FILEINFO *finfo;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
-	char *p;
+	char name[18], *p;
+	int i;
+	for (i = 0; i < 13; i++) {// 根据命令生成文件名
+		if (cmdline[i] <= ' ') break;
+		name[i] = cmdline[i];
+	}
+	name[i] = 0;	// 将文件名后置为 0
+	finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+	if (finfo == 0 && name[i - 1] != '.') {// 找不到文件通过加上文件后缀 '.hrb' 查找
+		name[i]     = '.';
+		name[i + 1] = 'H';
+		name[i + 2] = 'R';
+		name[i + 3] = 'B';
+		name[i + 4] = 0;
+		finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+	}
 	if (finfo != 0) {// 找到文件
 		p = (char *) memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER);
 		farcall(0, 1003 * 8);
 		memman_free_4k(memman, (int) p, finfo->size);
-	} else {// 没有找到文件
-		putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, "File not found");
+		term_newline(term);
+		return 1;
 	}
-	term_newline(term);
+	return 0;
 }
