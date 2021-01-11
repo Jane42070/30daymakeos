@@ -139,13 +139,18 @@ void term_putchar(struct TERM *term, int c, char mv)
 	}
 }
 
-// 输出字符串
-// TODO: 不使用term_putchar(), 感觉太费性能？
+// 输出字符串0
 void term_putstr(struct TERM *term, char *s)
 {
-	char *p = s;
 	int i, len = strlen(s);
-	for (i = 0; i < len; i++) term_putchar(term, p[i], 1);
+	for (i = 0; i < len; i++) term_putchar(term, s[i], 1);
+}
+
+// 输出字符串1
+void term_putnstr(struct TERM *term, char *s, int l)
+{
+	int i;
+	for (i = 0; i < l; i++) term_putchar(term, s[i], 1);
 }
 
 // 运行命令
@@ -178,12 +183,8 @@ void cmd_mem(struct TERM *term, unsigned int memtotal)
 {
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	char s[30] = {0};
-	sprintf(s, "Total %dMB", memtotal / (1024 * 1024));
-	putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, s);
-	term_newline(term);
-	sprintf(s, "Free %dKB", memman_total(memman) / 1024);
-	putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, s);
-	term_newline(term);
+	sprintf(s, "Total %dMB\nFree %dKB\n", memtotal / (1024 * 1024), memman_total(memman) / 1024);
+	term_putstr(term, s);
 }
 
 // clear 命令
@@ -210,13 +211,12 @@ void cmd_ls(struct TERM *term)
 		if (finfo[x].name[0] == 0x00) break;
 		if (finfo[x].name[0] != 0xe5) {
 			if ((finfo[x].type & 0x18) == 0) {
-				sprintf(s, "filename.ext    %7d", finfo[x].size);
+				sprintf(s, "filename.ext    %7d\n", finfo[x].size);
 				for (y = 0; y < 8; y++) s[y] = finfo[x].name[y];
 				s[9]  = finfo[x].ext[0];
 				s[10] = finfo[x].ext[1];
 				s[11] = finfo[x].ext[2];
-				putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, s);
-				term_newline(term);
+				term_putstr(term, s);
 			}
 		}
 	}
@@ -235,8 +235,9 @@ void cmd_cat(struct TERM *term, int *fat, char *cmdline)
 		for (i = 0; i < finfo->size; i++) term_putchar(term, p[i], 1);
 		memman_free_4k(memman, (int) p, finfo->size);
 	} else {// 没有找到文件
-		putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, "File not found");
-		term_newline(term);
+		char *s = 0;
+		sprintf(s, "No such file or directory: %s\n", cmdline + 4);
+		term_putstr(term, s);
 	}
 }
 
@@ -248,18 +249,12 @@ void cmd_uname(struct TERM *term, char *cmdline)
 	if (cmdline[6] == '-') {
 		switch (cmdline[7]) {
 			case 'h':
-				term_putstr(term, "Usage: uname [OPTION]...");
-				term_newline(term);
-				term_putstr(term, "-a, print all information");
-				term_newline(term);
-				term_putstr(term, "-r, print kernel release");
-				term_newline(term);
-				term_putstr(term, "-v, print kernel version");
-				term_newline(term);
-				term_putstr(term, "-m, print system architecture");
-				term_newline(term);
-				term_putstr(term, "-o, print operating system");
-				term_newline(term);
+				term_putstr(term, "Usage: uname [OPTION]...\n");
+				term_putstr(term, "-a, print all information\n");
+				term_putstr(term, "-r, print kernel release\n");
+				term_putstr(term, "-v, print kernel version\n");
+				term_putstr(term, "-m, print system architecture\n");
+				term_putstr(term, "-o, print operating system\n");
 				term_putstr(term, "-h, display this help and exit");
 				break;
 			case 'a':
@@ -284,10 +279,8 @@ void cmd_uname(struct TERM *term, char *cmdline)
 				term_newline(term);
 				break;
 			default:
-				term_putstr(term, "uname: extra operand");
-				term_newline(term);
-				term_putstr(term, "Try 'uname -h' for more information");
-				term_newline(term);
+				term_putstr(term, "uname: extra operand\n");
+				term_putstr(term, "Try 'uname -h' for more information\n");
 		}
 	} else if (strcmp(cmdline, "uname") == 0) {
 		term_putstr(term, kernel_name);
@@ -319,6 +312,7 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 	}
 	if (finfo != 0) {// 找到文件
 		p = (char *) memman_alloc_4k(memman, finfo->size);
+		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER);
 		farcall(0, 1003 * 8);
@@ -327,4 +321,22 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 		return 1;
 	}
 	return 0;
+}
+
+// 应用程序API
+void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
+{
+	int cs_base = *((int *) 0xfe8);
+	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
+	switch (edx) {
+		case 1:
+			term_putchar(term, eax & 0xff, 1);
+			break;
+		case 2:
+			term_putstr(term, (char *) ebx + cs_base);
+			break;
+		case 3:
+			term_putnstr(term, (char *) ebx + cs_base, ecx);
+			break;
+	}
 }
