@@ -47,21 +47,21 @@ bootpack.bim : $(OBJS_BOOTPACK) Makefile
 bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
 
-halt.hrb : halt.asm Makefile
-	$(NASK) halt.asm halt.hrb halt.lst
+hello.hrb : hello.asm Makefile
+	$(NASK) hello.asm hello.hrb hello.lst
 
 #haribote.sys : asmhead.bin bootpack.hrb Makefile
 #	copy /B asmhead.bin+bootpack.hrb haribote.sys
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
 
-spark.img : ipl10.bin haribote.sys halt.hrb Makefile
+spark.img : ipl10.bin haribote.sys hello.hrb Makefile
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
 		copy from:ipl10.asm to:@: \
 		copy from:make.bat to:@: \
-		copy from:halt.hrb to:@: \
+		copy from:hello.hrb to:@: \
 		imgout:spark.img
 
 # 多文件联编
