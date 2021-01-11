@@ -16,8 +16,8 @@
 		GLOBAL	_asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
 		GLOBAL	_memtest_sub
 		GLOBAL	_farjmp, _farcall
-		GLOBAL	_asm_term_putchar
-		EXTERN	_inthandler20, _inthandler21, _inthandler27, _inthandler2c, _term_putchar
+		GLOBAL	_asm_hrb_api
+		EXTERN	_inthandler20, _inthandler21, _inthandler27, _inthandler2c, _hrb_api
 
 [SECTION .text]
 
@@ -215,14 +215,11 @@ _farcall:		; void farcall(int eip, int cs)
 		CALL	FAR [ESP+4]				; eip, cs
 		RET
 
-_asm_term_putchar:
+_asm_hrb_api:
 		STI		; 开启中断
-		PUSHAD
-		PUSH	1
-		AND		EAX,0xff	; 将 AH 和 EAX 的高位置 0，将 EAX 置为已存入字符编码的状态
-		PUSH	EAX
-		PUSH	DWORD [0x0fec]	; 读取内存并 PUSH 该值
-		CALL	_term_putchar
-		ADD		ESP,12		; 将栈中的数据丢弃
+		PUSHAD	; 用于保存寄存器值的PUSH
+		PUSHAD	; 用于向hrb_api传值的PUSH
+		CALL	_hrb_api
+		ADD		ESP,32
 		POPAD
 		IRETD
