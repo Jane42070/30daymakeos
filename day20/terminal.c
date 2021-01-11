@@ -119,7 +119,7 @@ void term_putchar(struct TERM *term, int c, char mv)
 	switch (s[0]) {
 		case 0x09:// 制表符
 			for (;;) {
-				putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, term->cur_c, COL8_FFFFFF, " ");
+				putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, term->cur_c, COL8_000000, " ");
 				term->cur_x += 8;
 				if (term->cur_x == 8 + 240) term_newline(term);
 				if ((term->cur_x - 8) & 0x1f) break;
