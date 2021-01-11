@@ -596,6 +596,12 @@ fin:
 	- 因为修改了操作系统的代码，所以重新定位`_asm_term_putchar`的地址
 		- `0x00000C01 : _asm_term_putchar`
 ![endapp](./day20/demo_endapp.gif)
+- 如果修改了操作系统的代码，就需要再次查看`_asm_term_putchar`的地址，太麻烦了，编写一个不随系统版本而改变的 API
+	- 思路：在操作系统的中断记录表中注册此 API 在 0x40 号，就不需要调用地址了，直接进行中断处理`INT 0x40`
+	- MOS-DOS 的 API 采用的也是这种 INT 方式
+	- 但是在 INT 指令调用的时候会被视作中断来处理，用 RETF 是无法返回的，需要使用 IRETD 指令，需要改写`naskfunc.asm`
+	- INT 中断执行的时候 CPU 会默认关闭所有中断（CLI 指令），在此不需要，只是调用此函数，API 处理电脑像死机了一样体验可不好
+![intapp](./day20/demo_intapp.gif)
 ## TODO
 ### 终端
 1. 支持补全
