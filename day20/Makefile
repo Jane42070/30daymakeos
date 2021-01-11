@@ -55,14 +55,14 @@ halt.hrb : halt.asm Makefile
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
 
-haribote.img : ipl10.bin haribote.sys halt.hrb Makefile
+spark.img : ipl10.bin haribote.sys halt.hrb Makefile
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
 		copy from:ipl10.asm to:@: \
 		copy from:make.bat to:@: \
 		copy from:halt.hrb to:@: \
-		imgout:haribote.img
+		imgout:spark.img
 
 # 多文件联编
 %.gas : %.c Makefile
@@ -77,20 +77,20 @@ haribote.img : ipl10.bin haribote.sys halt.hrb Makefile
 # 其他指令
 
 img :
-	$(MAKE) haribote.img
+	$(MAKE) spark.img
 
 # run :
 #     $(MAKE) img
-#     $(COPY) haribote.img ..\tolset\z_tools\qemu\fdimage0.bin
+#     $(COPY) spark.img ..\tolset\z_tools\qemu\fdimage0.bin
 #     $(MAKE) -C ../tolset/z_tools/qemu
 
 run :
 	../tolset/z_tools/make.exe img
-	qemu-system-x86_64 -m 32 -fda haribote.img
+	qemu-system-x86_64 -m 32 -fda spark.img
 
 install :
 	$(MAKE) img
-	$(IMGTOL) w a: haribote.img
+	$(IMGTOL) w a: spark.img
 
 clean :
 	-$(DEL) *.bin
@@ -103,4 +103,4 @@ clean :
 
 src_only :
 	$(MAKE) clean
-	-$(DEL) haribote.img
+	-$(DEL) spark.img
