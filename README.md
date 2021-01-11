@@ -545,16 +545,16 @@ sudo pacman -S lib32-gcc-libs, lib32-glibc
 ; naskfunc.asm
 _asm_term_putchar:
 		PUSH	1
-		AND		EAX,0xff	; 将 AH 和 EAX 的高位置 0，将 EAX 置为已存入字符编码的状态
+		AND 	EAX,0xff	; 将 AH 和 EAX 的高位置 0，将 EAX 置为已存入字符编码的状态
 		PUSH	EAX
 		PUSH	DWORD [0x0fec]	; 读取内存并 PUSH 该值
 		CALL	_term_putchar
-		ADD		ESP,12		; 将栈中的数据丢弃
+		ADD 	ESP,12		; 将栈中的数据丢弃
 		RETF
 
 ; halt.asm
 [BITS 32]
-	MOV		AL,'A'
+	MOV 	AL,'A'
 	CALL	2*8:0xBFC	; 应用程序对 API 执行 CALL 的时候，要加上操作系统的段号，使用 farcall 并将 naskfunc.nas 中 RET 改为 RETF
 fin:
 	HLT
@@ -563,6 +563,39 @@ fin:
 
 ![Demo](./day20/demo.gif)
 
+- 结束应用程序，在应用程序执行完成后返回操作系统的段`1003 * 8`
+	- 编写`farcall()`函数，在执行`halt`完成后调用回到操作系统段
+	```nasm
+	; naskfunc.asm
+	_farcall:	; void farcall(int eip, int cs);
+		CALL FAR [ESP+4]	; eip, cs
+		RET
+	```
+	- `terminal.c`
+	```c
+	// halt 应用
+	void cmd_halt(struct TERM *term, int *fat)
+	{
+		struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+		struct FILEINFO *finfo = file_search("halt.hrb", (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+		struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
+		char *p;
+		if (finfo != 0) {// 找到文件
+			p = (char *) memman_alloc_4k(memman, finfo->size);
+			file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
+			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER);
+			farcall(0, 1003 * 8); // 这里！
+			memman_free_4k(memman, (int) p, finfo->size);
+		} else {// 没有找到文件
+			putfonts8_str_sht(term->sht, 8, term->cur_y, COL8_FFFFFF, COL8_000000, "File not found");
+			term_newline(term);
+		}
+	}
+	```
+	- 修改`halt.asm`返回为`RETF`
+	- 因为修改了操作系统的代码，所以重新定位`_asm_term_putchar`的地址
+		- `0x00000C01 : _asm_term_putchar`
+![endapp](./day20/demo_endapp.gif)
 ## TODO
 ### 终端
 1. 支持补全
