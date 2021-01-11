@@ -220,7 +220,6 @@ void cmd_ls(struct TERM *term)
 			}
 		}
 	}
-	term_newline(term);
 }
 
 // cat 命令
