@@ -37,6 +37,7 @@ void asm_inthandler27(void);
 void asm_inthandler2c(void);
 void asm_hrb_api();
 unsigned int memtest_sub(unsigned int start, unsigned int end);
+void start_app(int eip, int cs, int esp, int ds);
 
 /** 装载段号寄存器函数
  *  装载中断记录表函数
