@@ -690,6 +690,18 @@ RETF
 - 修改对应的 Makefile 文件
 ![c lang app](./day21/capp.gif)
 
+- 保护操作系统
+	- 防止恶意应用操作，修复漏洞
+	- 创建一个修改内存地址值的应用
+
+```c
+void HariMain()
+{
+	*((char *) 0x00102600) = 0;
+}
+```
+![crack](./day21/crack.png)
+
 ## TODO
 ### 终端
 1. 支持补全
