@@ -356,3 +356,11 @@ void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			break;
 	}
 }
+
+// 抛出异常
+int inthandler0d(int *esp)
+{
+	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
+	term_putstr(term, "\nINT 0x0d:\n General Protected Exception.");
+	return 1;// 返回强制结束程序标志
+}
