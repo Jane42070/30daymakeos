@@ -38,7 +38,7 @@ void asm_inthandler27(void);
 void asm_inthandler2c(void);
 void asm_hrb_api();
 unsigned int memtest_sub(unsigned int start, unsigned int end);
-void start_app(int eip, int cs, int esp, int ds);
+void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 
 /** 装载段号寄存器函数
  *  装载中断记录表函数
@@ -337,8 +337,8 @@ void cmd_ls(struct TERM *term);
 void cmd_cat(struct TERM *term, int *fat, char *cmdline);
 void cmd_uname(struct TERM *term, char *cmdline);
 int cmd_app(struct TERM *term, int *fat, char *cmdline);
-void hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
-int inthandler0d(int *esp);
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+int *inthandler0d(int *esp);
 
 /* file.c */
 // 文件信息
