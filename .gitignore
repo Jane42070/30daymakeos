@@ -12,3 +12,6 @@ $RECYCLE.BIN/
 
 *.rej
 *.orig
+*.bim
+*.hrb
+*.map
