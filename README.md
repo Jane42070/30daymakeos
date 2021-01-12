@@ -21,6 +21,7 @@
 		* [day21 保护操作系统](#day21-保护操作系统)
 	* [TODO](#todo)
 		* [终端](#终端)
+		* [操作系统](#操作系统)
 
 <!-- vim-markdown-toc -->
 
@@ -798,9 +799,48 @@ _asm_inthandler0d:
 ```
 ![crack2](./day21/crack2.gif)
 
+- 思路：想个办法使应用程序无法使用操作系统的段地址
+	- 在段定义的地方，如果将访问权限加上 0x60 的话，就可以将段设置为应用程序用
+	- 当 CS 地址中的段地址为应用程序用段地址时，CPU 会认为“当前正在运行应用程序”，如果这时存入操作系统的段地址就会产生异常
+- 在 TSS 中注册操作系统用的段地址和 ESP
+	- 使用此方法，启动应用程序的时候需要让“操作系统向应用程序用的段执行 far-CALL”，根据 x86 的规则，不允许操作系统 CALL 应用程序，强行 CALL 会产生异常，JMP 在 x86 中也是不行的
+	- 使用 RETF 事先将地址 PUSH 到栈中，然后执行 RETF，这样就可以启动应用程序了
+	- RETF 是当 far-CALL 调用后返回的指令，即使没有被 CALL 调用，也可以使用 RETF，其本质就是从栈中将地址 POP 出来，然后 JMP 到该地址
+	- 用 RETF 代替 farjmp
+
+```nasm
+_start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
+		PUSHAD		; 将 32 位寄存器的值全部保存起来
+		MOV		EAX,[ESP+36]	; 应用程序用 EIP
+		MOV		ECX,[ESP+40]	; 应用程序用 CS
+		MOV		EDX,[ESP+44]	; 应用程序用 DS/SS
+		MOV		EBX,[ESP+48]	; 应用程序用 ESP
+		MOV		EBP,[ESP+52]	; tss.esp0 的地址
+		MOV		[EBP],ESP		; 操作系统用 ESP
+		MOV		[EBP+4],SS		; 保存操作系统用 SS
+		MOV		ES,BX
+		MOV		DS,BX
+		MOV		FS,BX
+		MOV		GS,BX
+; 下面调整栈，以免用 RETF 跳转到应用程序
+		OR		ECX,3			; 将应用程序用段号和 3 进行 OR 运算
+		OR		EBX,3			; 将应用程序用段号和 3 进行 OR 运算
+		PUSH	EBX				; 应用程序的 SS
+		PUSH	EDX				; 应用程序的 ESP
+		PUSH	ECX				; 应用程序的 CS
+		PUSH	EAX				; 应用程序的 EIP
+		RETF
+```
+- 其他相关函数进行对应的更改
+- 让 0x40 号中断可以被应用程序调用，中断属性 +0x60
+
+![protectos](./day21/protectos.gif)
+
 ## TODO
 ### 终端
 1. 支持补全
 2. 支持指令回滚
 3. 支持命令打开应用
 4. 支持 vi mode
+### 操作系统
+1. 支持组合快捷键
