@@ -678,6 +678,17 @@ msg:
 ### day21 保护操作系统
 
 - 用 C 语言编写应用程序
+	- 思路：写一个 asm 的显示字符 API，通过 C 语言调用 API 达到显示字符的效果
+	- a_nask.asm 和 naskfunc.asm 的显示字符函数一样
+	- 通过修改 cmd_app() 函数的加载应用程序方法
+		- 通过文件大小判断其是否为 C 语言应用，如果是，则修改内容在头地址加上执行主函数的汇编语句
+```nasm
+; e8 16 00 00 00 cb
+CALL, 0x1b
+RETF
+```
+- 修改对应的 Makefile 文件
+![c lang app](./day21/capp.gif)
 
 ## TODO
 ### 终端
