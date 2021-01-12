@@ -55,6 +55,9 @@ hello.hrb : hello.asm Makefile
 hello2.hrb : hello2.asm Makefile
 	$(NASK) hello2.asm hello2.hrb hello2.lst
 
+crack2.hrb : crack2.asm Makefile
+	$(NASK) crack2.asm crack2.hrb crack2.lst
+
 # C 语言应用程序
 a.bim : a.obj a_nask.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
@@ -79,7 +82,7 @@ crack1.hrb : crack1.bim Makefile
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
 
-spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3.hrb crack1.hrb
+spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3.hrb crack1.hrb crack2.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
@@ -88,6 +91,7 @@ spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb a.hrb hello3.hr
 		copy from:hello.hrb to:@: \
 		copy from:hello2.hrb to:@: \
 		copy from:a.hrb to:@: \
+		copy from:crack2.hrb to:@: \
 		copy from:hello3.hrb to:@: \
 		copy from:crack1.hrb to:@: \
 		imgout:spark.img
