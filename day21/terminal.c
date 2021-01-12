@@ -294,7 +294,7 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FILEINFO *finfo;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
-	char name[18], *p;
+	char name[18], *p, *q;
 	int i;
 	for (i = 0; i < 13; i++) {// 根据命令生成文件名
 		if (cmdline[i] <= ' ') break;
@@ -312,10 +312,11 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 	}
 	if (finfo != 0) {// 找到文件
 		p = (char *) memman_alloc_4k(memman, finfo->size);
+		q = (char *) memman_alloc_4k(memman, 64 * 1024);
 		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER);
-
+		set_segmdesc(gdt + 1004, 64 * 1024 - 1, (int) q, AR_DATA32_RW);
 		/*
 		 * 如果文件大于 8 字节，那么就是C语言写的应用程序
 		 * CALL 0x1b
@@ -329,8 +330,9 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 			p[4] = 0x00;
 			p[5] = 0xcb;
 		}
-		farcall(0, 1003 * 8);
+		start_app(0, 1003 * 8, 64 * 1024, 1004 * 8);
 		memman_free_4k(memman, (int) p, finfo->size);
+		memman_free_4k(memman, (int) q, 64 * 1024);
 		term_newline(term);
 		return 1;
 	}
