@@ -786,6 +786,17 @@ _asm_inthandler0d:
 ```
 
 - qemu 虚拟机实验的时候并没有抛出异常，在真机测试的时候能够抛出异常，qemu 的 BUG
+- 操作系统会指定应用程序用的 DS，因此破坏行为会发生异常，那么如果忽略操作系统指定的 DS，而是用汇编语言将操作系统用的段地址存入 DS 的话，就又可以干坏事了
+
+```nasm
+[INSTRSET "i486p"]
+[BITS 32]
+		MOV 	EAX,1*8 	; OS 用的段号
+		MOV 	DS,AX		; 将其存入 DS
+		MOV 	BYTE [0x102600],0
+		RETF
+```
+![crack2](./day21/crack2.gif)
 
 ## TODO
 ### 终端
