@@ -1,9 +1,9 @@
 #include "bootpack.h"
 /* sys info */
-static char *kernel_release = "0.2.0";
+static char *kernel_release = "0.2.1";
 static char *kernel_version = "2020 1-11 01:26";
 static char *kernel_name    = "Spark";
-static char *architecture   = "i386";
+static char *architecture   = "i486";
 static char *operating_sys  = "CLAY/Spark";
 
 void term_task(struct SHEET *sheet, unsigned int memtotal)
@@ -315,6 +315,20 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER);
+
+		/*
+		 * 如果文件大于 8 字节，那么就是C语言写的应用程序
+		 * CALL 0x1b
+		 * RETF
+		 * */
+		if (finfo->size >= 8 && strncmp(p + 4, "Hari", 4) == 0) {
+			p[0] = 0xe8;
+			p[1] = 0x16;
+			p[2] = 0x00;
+			p[3] = 0x00;
+			p[4] = 0x00;
+			p[5] = 0xcb;
+		}
 		farcall(0, 1003 * 8);
 		memman_free_4k(memman, (int) p, finfo->size);
 		term_newline(term);
