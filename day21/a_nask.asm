@@ -4,6 +4,7 @@
 [FILE "a_nask.nas"]			; 源文件名信息
 
 	GLOBAL _api_putchar
+	GLOBAL _api_end
 
 [SECTION .text]
 
@@ -12,3 +13,7 @@ _api_putchar:	; void api_putchar(int c)
 	MOV		AL,[ESP+4]		; int c
 	INT		0x40
 	RET
+
+_api_end:	; void api_end()
+	MOV		EDX,4
+	INT		0x40
