@@ -718,6 +718,74 @@ void HariMain()
 ![crack1](./day21/crack1.gif)
 
 - 阻止了恶意程序的破坏，但是没有终止此程序运行
+- 对异常的支持
+- 强制结束程序功能
+	- 思路：在中断号 0x0d 中注册一个函数
+	- 在 x86 架构规范中，当应用程序试图破坏操作系统，或者试图违背操作系统的设置时，就会自动产生 0x0d 中断，因此该中断也被称为“异常”
+
+```nasm
+_asm_inthandler0d:
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		AX,SS
+		CMP		AX,1*8
+		JNE		.from_app
+; 如果操作系统活动时产生的中断情况和之前差不多
+		MOV		EAX,ESP
+		PUSH	SS				; 保存中断时的 SS
+		PUSH	EAX				; 保存中断时的 ESP
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0d
+
+		ADD		ESP,8
+		POPAD
+		POP		DS
+		POP		ES
+		IRETD
+.from_app:
+; 当应用程序活动时发生中断
+		MOV		EAX,1*8
+		MOV		DS,AX			; 先仅将 DS 设定为操作系统专用
+		MOV		ECX,[0xfe4]		; 操作系统的 ESP
+		ADD		ECX,-8
+		MOV		[ECX+4],SS		; 保存中断时的 SS
+		MOV		[ECX],ESP		; 保存中断时的 ESP
+		MOV		SS,AX
+		MOV		ES,AX
+		MOV		ESP,ECX
+		STI
+		CALL	_inthandler0d
+		CLI
+		CMP		EAX,0
+		JNE		.kill
+		POP		ECX
+		POP		EAX
+		MOV		SS,AX			; 将 SS 设回应用程序用
+		MOV		ESP,ECX			; 将 ESP 设回应用程序用
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4			; INT 0x0d 需要这个值
+		IRETD
+
+.kill
+; 强制结束应用程序
+		MOV		EAX,1*8			; 操作系统用的 DS/SS
+		MOV		ES,AX
+		MOV		SS,AX
+		MOV		DS,AX
+		MOV		FS,AX
+		MOV		GS,AX
+		MOV		ESP,[0xfe4]		; 强制返回到 start_app 时的 ESP
+		STI		; 切换完成后恢复中断请求
+		POPAD	; 恢复事先保存好的寄存器值
+		RET
+```
+
+- qemu 虚拟机实验的时候并没有抛出异常，在真机测试的时候能够抛出异常，qemu 的 BUG
 
 ## TODO
 ### 终端
