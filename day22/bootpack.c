@@ -1,11 +1,13 @@
 #include "bootpack.h"
 #define KEYCMD_LED 0xed
+int key_esc = 0;
 
 void HariMain(void)
 {
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FIFO32 fifo, keycmd;
+	struct TERM *term;
 	int fifobuf[128], keycmd_buf[32];
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
@@ -33,7 +35,7 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1, keycmd_time = 0;
+	int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1, keycmd_time = 0;
 
 	unsigned int memtotal;
 	char s[40];
@@ -150,7 +152,7 @@ void HariMain(void)
 						s[0] += 0x20;	// 将大写字母转化为小写字母
 					}
 				}
-				if (s[0] != 0) {// 一般字符
+				if (s[0] != 0 && key_ctrl != 1 && key_alt != 1) {// 一般字符在没有按下组合键 ctrl，alt 的时候
 					// 显示一个字符就后移一次光标
 					if (key_to == 0) {// 发送给任务 A
 						if (cursor_x < 128) {
@@ -174,28 +176,39 @@ void HariMain(void)
 						else fifo32_put(&task_term->fifo, 8 + 256);
 						break;
 					case 256 + 0x0f:// TAB键处理
-						if (key_to == 0) {// 切换至终端
-							key_to = 1;
-							sheet_updown(sht_term, 2);
-							sheet_updown(sht_win,  1);
-							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
-							make_wtitle8(buf_term, sht_term->bxsize, "terminal", 1);
-							cursor_c = -1; // 不显示光标
-							boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
-							fifo32_put(&task_term->fifo, 2);	// 命令行窗口光标 ON
-						} else {// 切换至任务 A
-							key_to = 0;
-							sheet_updown(sht_term, 1);
-							sheet_updown(sht_win,  2);
-							make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
-							make_wtitle8(buf_term, sht_term->bxsize, "terminal", 0);
-							cursor_c = COL8_000000;	// 显示光标
-							fifo32_put(&task_term->fifo, 3);	// 命令行窗口光标 OFF
+						if (key_alt != 0) {// alt + tab
+							key_to ^= 1;
+							if (key_to == 1) {// 切换至终端
+								sheet_updown(sht_term, 2);
+								sheet_updown(sht_win,  1);
+								make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
+								make_wtitle8(buf_term, sht_term->bxsize, "terminal", 1);
+								cursor_c = -1; // 不显示光标
+								boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
+								fifo32_put(&task_term->fifo, 2);	// 命令行窗口光标 ON
+							} else {// 切换至任务 A
+								sheet_updown(sht_term, 1);
+								sheet_updown(sht_win,  2);
+								make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
+								make_wtitle8(buf_term, sht_term->bxsize, "terminal", 0);
+								cursor_c = COL8_000000;	// 显示光标
+								fifo32_put(&task_term->fifo, 3);	// 命令行窗口光标 OFF
+							}
 						}
 						sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
 						sheet_refresh(sht_term, 0, 0, sht_term->bxsize, 21);
 						if (cursor_c >= 0) boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
 						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
+						break;
+					case 256 + 0xae:
+						if (key_ctrl != 0 && task_term->tss.ss0 != 0) {// ctrl + c
+							term = (struct TERM *) *((int *) 0x0fec);
+							term_putstr(term, "\nBreak(key):\nCtrl + c");
+							io_cli();	// 不能在改变寄存器值时切换到其他任务
+							task_term->tss.eax = (int) &(task_term->tss.esp0);
+							task_term->tss.eip = (int) asm_end_app;
+							io_sti();
+						}
 						break;
 					case 256 + 0x1c:// 回车键
 						if (key_to != 0) fifo32_put(&task_term->fifo, 10 + 256);	// 发送命令到终端
@@ -212,6 +225,24 @@ void HariMain(void)
 					case 256 + 0xb6:// rShift OFF
 						key_shift &= ~2;
 						break;
+					case 256 + 0x1d:// lCtrl ON
+						key_ctrl |=1;
+						break;
+					case 256 + 0x9d:// lCtrl OFF
+						key_ctrl &= ~1;
+						break;
+					case 256 + 0x38:// lAlt ON
+						key_alt |= 1;
+						break;
+					case 256 + 0xb8:// lAlt OFF
+						key_alt &= ~1;
+						break;
+					case 256 + 0x01:// ESC
+						key_esc ^= 1;
+						if (key_esc == 0) putfonts8_str_sht(sht_back, 500, 500, COL8_FFFFFF, COL8_008484, "esc");
+						else putfonts8_str_sht(sht_back, 500, 500, COL8_FFFFFF, COL8_008484, "ESC");
+						sheet_refresh(sht_back, 500, 516, 524, 516);
+						break;
 					case 256 + 0x3a:// CapsLock
 						key_leds ^= 4;
 						fifo32_put(&keycmd, KEYCMD_LED);
@@ -227,6 +258,19 @@ void HariMain(void)
 						fifo32_put(&keycmd, KEYCMD_LED);
 						fifo32_put(&keycmd, key_leds);
 						break;
+					// TODO: 实现功能键按下的功能
+					// case 256 + 0xe0:// 功能键
+					//     switch (fifo32_get(&fifo)) {
+					//         case 256 + 0x48:// 箭头上
+					//             break;
+					//         case 256 + 0x4b:// 箭头左
+					//             break;
+					//         case 256 + 0x4d:// 箭头右
+					//             break;
+					//         case 256 + 0x50:// 箭头下
+					//             break;
+					//     }
+					//     break;
 					case 256 + 0xfa:// 键盘成功接收到数据
 						keycmd_wait = -1;
 						break;
