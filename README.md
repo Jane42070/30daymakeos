@@ -19,6 +19,7 @@
 		* [day19 应用](#day19-应用)
 		* [day20 API](#day20-api)
 		* [day21 保护操作系统](#day21-保护操作系统)
+		* [day22 编写 C 语言应用程序](#day22-编写-c-语言应用程序)
 	* [TODO](#todo)
 		* [终端](#终端)
 		* [操作系统](#操作系统)
@@ -835,6 +836,55 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 - 让 0x40 号中断可以被应用程序调用，中断属性 +0x60
 
 ![protectos](./day21/protectos.gif)
+
+### day22 编写 C 语言应用程序
+- 保护操作系统 5
+	- 编写 crack3.asm
+	```nasm
+	[INSTRSET "i486p"]
+	[BITS 32]
+		CLI
+	fin:
+		HLT
+		jmp fin
+	```
+		- 应用程序运行，操作系统会禁止应用程序使用 STI，CLI，HLT 这些指令
+	- 编写 crack4.asm
+	```nasm
+	[INSTRSET "i486p"]
+	[BITS 32]
+			MOV		AL,0x34
+			OUT		043,AL
+			MOV		AL,0xff
+			OUT		0x40,AL
+			MOV		AL,0xff
+			OUT		0x40,AL
+
+	; 上述代码功能与下面代码相当
+	; io_out8(PIT_CTRL, 0x34);
+	; io_out8(PIT_CNT0, 0xff);
+	; io_out8(PIT_CNT0, 0xff);
+
+			MOV		EDX,4
+			INT		0x40
+	```
+		- 以应用模式运行时，执行 IN 指令和 OUT 指令都会产生一般保护异常，通过修改 CPU 设置可以允许应用程序使用 IN，OUT 指令，但是会留下 BUG 遭到攻击
+	- 编写 crack5.asm 通过 farjmp 执行操作系统的 io_cli()
+	```nasm
+	; bootpack.map
+	0x00000ADA : _io_cli ; io_cli 所在的地址
+	; crack5.asm
+	[INSTRSET "i486p"]
+	[BITS 32]
+			CALL	2*8:0x00000ADA
+			MOV		EDX,4
+			INT		0x40
+	```
+		- CPU 规定除了设置好的地址以外，禁止应用程序 CALL 其他地址，因此应用程序要调用操作系统指令只能采用 INT 0x40 的方法
+
+![protectos](./day22/protectos.gif)
+
+
 
 ## TODO
 ### 终端
