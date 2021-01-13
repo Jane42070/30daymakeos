@@ -341,21 +341,36 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 // 应用程序API
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int cs_base = *((int *) 0xfe8);
-	struct TASK *task = task_now();
-	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
+	int ds_base = *((int *) 0xfe8);
+	struct TASK *task     = task_now();
+	struct TERM *term     = (struct TERM *) *((int *) 0x0fec);
+	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+	struct SHEET *sht;
+	int *reg = &eax + 1;	// eax 后面的地址
+	/* 强行改写通过 PUSHAD 保存的值
+	 * reg[0] : EDI,	reg[1] : ESI,	reg[2] : EBP,	reg[3] : ESP
+	 * reg[4] : EBX,	reg[5] : EDX,	reg[6] : ECX,	reg[7] : EAX
+	 * */
 	switch (edx) {
 		case 1:
 			term_putchar(term, eax & 0xff, 1);
 			break;
 		case 2:
-			term_putstr(term, (char *) ebx + cs_base);
+			term_putstr(term, (char *) ebx + ds_base);
 			break;
 		case 3:
-			term_putnstr(term, (char *) ebx + cs_base, ecx);
+			term_putnstr(term, (char *) ebx + ds_base, ecx);
 			break;
 		case 4:
 			return &(task->tss.esp0);
+		case 5:
+			sht = sheet_alloc(shtctl);
+			sheet_setbuf(sht, (unsigned char *) ebx + ds_base, esi, edi, eax);
+			make_window8((unsigned char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
+			sheet_slide(sht, 100, 50);
+			sheet_updown(sht, 3);	// 背景层高度位于 task_a 之上
+			reg[7] = (int) sht;
+			break;
 	}
 	return 0;
 }
