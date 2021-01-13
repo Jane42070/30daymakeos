@@ -291,6 +291,7 @@ void cmd_uname(struct TERM *term, char *cmdline)
 // 启动应用
 int cmd_app(struct TERM *term, int *fat, char *cmdline)
 {
+	int segsiz, datsiz, esp, dathrb;
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FILEINFO *finfo;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
@@ -313,27 +314,24 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 	}
 	if (finfo != 0) {// 找到文件
 		p = (char *) memman_alloc_4k(memman, finfo->size);
-		q = (char *) memman_alloc_4k(memman, 64 * 1024);
 		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
-		set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
-		set_segmdesc(gdt + 1004, 64 * 1024 - 1, (int) q, AR_DATA32_RW + 0x60);
-		/*
-		 * 如果文件大于 8 字节，那么就是C语言写的应用程序
-		 * CALL 0x1b
-		 * RETF
-		 * */
-		if (finfo->size >= 8 && strncmp(p + 4, "Hari", 4) == 0) {
-			p[0] = 0xe8;
-			p[1] = 0x16;
-			p[2] = 0x00;
-			p[3] = 0x00;
-			p[4] = 0x00;
-			p[5] = 0xcb;
+		// 如果文件大于 36 字节，那么就是C语言写的应用程序
+		if (finfo->size >= 36 && strncmp(p + 4, "Hari", 4) == 0 && *p == 0x00) {
+			segsiz = *((int *) (p + 0x0000));
+			esp    = *((int *) (p + 0x000c));
+			datsiz = *((int *) (p + 0x0010));
+			dathrb = *((int *) (p + 0x0014));
+			q = (char *) memman_alloc_4k(memman, segsiz);
+			*((int *) 0xfe8) = (int) q;
+			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt + 1004, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
+			for (i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
+			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			memman_free_4k(memman, (int) q, segsiz);
 		}
-		start_app(0, 1003 * 8, 64 * 1024, 1004 * 8, &(task->tss.esp0));
+		else term_putstr(term, ".hrb file format error.");
 		memman_free_4k(memman, (int) p, finfo->size);
-		memman_free_4k(memman, (int) q, 64 * 1024);
 		term_newline(term);
 		return 1;
 	}
