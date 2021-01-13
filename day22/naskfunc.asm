@@ -13,12 +13,12 @@
 		GLOBAL	_load_gdtr, _load_idtr
 		GLOBAL	_load_tr
 		GLOBAL	_load_cr0, _store_cr0
-		GLOBAL	_asm_inthandler0d, _asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
+		GLOBAL	_asm_inthandler0c, _asm_inthandler0d, _asm_inthandler20, _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
 		GLOBAL	_memtest_sub
 		GLOBAL	_farjmp, _farcall
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_start_app
-		EXTERN	_inthandler0d, _inthandler20, _inthandler21, _inthandler27, _inthandler2c, _hrb_api
+		EXTERN	_inthandler0c, _inthandler0d, _inthandler20, _inthandler21, _inthandler27, _inthandler2c, _hrb_api
 
 [SECTION .text]
 
@@ -109,6 +109,26 @@ _store_cr0:		; void store_cr0(int cr0);
 		MOV		EAX,[ESP+4]
 		MOV		CR0,EAX
 		RET
+
+_asm_inthandler0c:
+		STI
+		PUSH	ES
+		PUSH	DS
+		PUSHAD
+		MOV		EAX,ESP
+		PUSH	EAX
+		MOV		AX,SS
+		MOV		DS,AX
+		MOV		ES,AX
+		CALL	_inthandler0c
+		CMP		EAX,0
+		JNE		end_app
+		POP		EAX
+		POPAD
+		POP		DS
+		POP		ES
+		ADD		ESP,4		; 在 INT 0x0c 中需要这句
+		IRETD
 
 _asm_inthandler20:
 		PUSH	ES
