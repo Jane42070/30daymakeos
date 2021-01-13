@@ -1098,6 +1098,45 @@ case 5:
 ```
 ![hellowindow](./day22/windowhello.png)
 
+- 窗口显示字符和方块
+- 显示字符 API
+| 寄存器 | 存放内容        |
+|--------|-----------------|
+| EDX    | 6               |
+| EBX    | 窗口句柄        |
+| ESI    | 显示位置的X坐标 |
+| EDI    | 显示位置的Y坐标 |
+| EAX    | 色号            |
+| ECX    | 字符串长度      |
+| EBP    | 字符串          |
+- 描绘方块API
+| 寄存器 | 存放内容 |
+|--------|----------|
+| EDX    | 7        |
+| EBX    | 窗口句柄 |
+| EAX    | X0       |
+| ECX    | Y0       |
+| ESI    | X1       |
+| EDI    | Y1       |
+| EBP    | 色号     |
+
+- 操作系统修改
+```c
+case 6:
+	sht = (struct SHEET *) ebx;
+	putfonts8_str(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
+	sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+	break;
+case 7:
+	sht = (struct SHEET *) ebx;
+	boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
+	sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+	break;
+```
+- 根据API需求写出汇编函数
+
+![winhelo2](./day22/winhelo2.gif)
+
 
 ## TODO
 ### 终端
