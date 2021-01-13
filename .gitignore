@@ -17,3 +17,6 @@ $RECYCLE.BIN/
 *.map
 *.img
 *.lst
+*.obj
+*.bin
+*.sys
