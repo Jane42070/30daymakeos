@@ -1040,6 +1040,64 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 	因为如果其他不是可执行的文件可能带有相同的字符，被误认为是可执行文件，虽然可以通过扩展名区分，一般情况下不会出错
 	但是如果扩展名可靠的话，就没必要加这样的标记了，就是因为扩展名有时候会出错，所以特地加了4个字节的标记，提高了安全性
 
+- 显示窗口
+	- 写一个显示窗口的API
+
+| 寄存器 | 存放内容                |
+|--------|-------------------------|
+| EDX    | 5                       |
+| EBX    | 窗口缓冲区              |
+| ESI    | 窗口X轴大小（窗口宽度） |
+| EDI    | 窗口Y轴大小（窗口高度） |
+| EAX    | 透明色                  |
+| ECX    | 窗口名称                |
+
+- 返回值：EAX=用于操作窗口的句柄（用于刷新窗口等操作）
+```nasm
+; a_nask.asm
+_api_openwin:	; int api_openwin(char *buf, int sxize, int yxize, int col_inv, char *title)
+	PUSH	EDI
+	PUSH	ESI
+	PUSH	EBX
+	MOV		EDX,5
+	MOV		EBX,[ESP+16]	; buf
+	MOV		ESI,[ESP+20]	; sxize
+	MOV		EDI,[ESP+24]	; yxize
+	MOV		EAX,[ESP+28]	; col_inv
+	MOV		ECX,[ESP+32]	; title
+	INT		0x40
+	POP		EBX
+	POP		ESI
+	POP		EDI
+	RET
+```
+- 编写C语言窗口应用程序
+```nasm
+int api_openwin(char *buf, int sxize, int yxize, int col_inv, char *title);
+void api_end();
+
+char buf[150 * 50];
+
+void HariMain()
+{
+	int win;
+	win = api_openwin(buf, 150, 50, -1, "Hello");
+	api_end();
+}
+```
+- 在bootpack.c中将层级管理器的地址存入0x0fe4地址然后在api_hrb()中调用进行窗口的初始化和层级的设置操作
+```c
+case 5:
+	sht = sheet_alloc(shtctl);
+	sheet_setbuf(sht, (unsigned char *) ebx + ds_base, esi, edi, eax);
+	make_window8((unsigned char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
+	sheet_slide(sht, 100, 50);
+	sheet_updown(sht, 3);	// 背景层高度位于 task_a 之上
+	reg[7] = (int) sht;
+	break;
+```
+![hellowindow](./day22/windowhello.png)
+
 
 ## TODO
 ### 终端
