@@ -945,6 +945,100 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 | esp[15] | SS       | 应用程序用 SS                                |
 
 - 用 C 语言显示字符串 1
+```c
+void api_putstr(char *s);
+void api_end();
+
+void HariMain()
+{
+	api_putstr("hello world");
+	api_end();
+}
+```
+	- 运行却没有显示任何字符
+- 现将 cmd_app() 中的二进制文件执行的 JMP 0x1b 删除，因为无法执行 RETF 了
+	- 在 hrb_api() 中加入应用程序显示字符串 ebx 寄存器数据显示功能
+	- bim2hrb 认为"hello, world"存放在显示的这个地址当中
+	- bim2hrb 生成的.hrb 文件其实是由两部分组成
+		- 代码部分
+		- 数据部分
+
+- bim2hrb 生成的 .hrb 文件开头 36 字节存放的信息
+
+| 地址（DWORD） | 信息                                     |
+|---------------|------------------------------------------|
+| 0x0000        | 请求操作系统为应用程序准备的数据段的大小 |
+| 0x0004        | "Hari"（.hrb 文件的标记）                |
+| 0x0008        | 数据段内预备空间的大小                   |
+| 0x000c        | ESP 初始值 & 数据部分传送目的地址        |
+| 0x0010        | hrb 文件内数据部分的大小                 |
+| 0x0014        | hrb 文件内数据部分从哪里开始             |
+| 0x0018        | 0xe9000000                               |
+| 0x001c        | 应用程序运行入口地址 - 0x20              |
+| 0x0020        | malloc 空间的起始地址                    |
+
+- 根据可执行文件内容修改 terminal.c
+```c
+// 启动应用
+int cmd_app(struct TERM *term, int *fat, char *cmdline)
+{
+	int segsiz, datsiz, esp, dathrb;
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	struct FILEINFO *finfo;
+	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *) ADR_GDT;
+	char name[18], *p, *q;
+	struct TASK *task = task_now();
+	int i;
+	for (i = 0; i < 13; i++) {// 根据命令生成文件名
+		if (cmdline[i] <= ' ') break;
+		name[i] = cmdline[i];
+	}
+	name[i] = 0;	// 将文件名后置为 0
+	finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+	if (finfo == 0 && name[i - 1] != '.') {// 找不到文件通过加上文件后缀 '.hrb' 查找
+		name[i]     = '.';
+		name[i + 1] = 'H';
+		name[i + 2] = 'R';
+		name[i + 3] = 'B';
+		name[i + 4] = 0;
+		finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+	}
+	if (finfo != 0) {// 找到文件
+		p = (char *) memman_alloc_4k(memman, finfo->size);
+		*((int *) 0xfe8) = (int) p;
+		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
+		// 如果文件大于 36 字节，那么就是 C 语言写的应用程序
+		if (finfo->size >= 36 && strncmp(p + 4, "Hari", 4) == 0 && *p == 0x00) {
+			segsiz = *((int *) (p + 0x0000));
+			esp    = *((int *) (p + 0x000c));
+			datsiz = *((int *) (p + 0x0010));
+			dathrb = *((int *) (p + 0x0014));
+			q = (char *) memman_alloc_4k(memman, segsiz);
+			*((int *) 0xfe8) = (int) q;
+			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt + 1004, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
+			for (i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
+			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			memman_free_4k(memman, (int) q, segsiz);
+		}
+		else term_putstr(term, ".hrb file format error.");
+		memman_free_4k(memman, (int) p, finfo->size);
+		term_newline(term);
+		return 1;
+	}
+	return 0;
+}
+```
+	- 文件中找不到"Hari"则报错。
+	- 数据段的大小根据.hrb 文件中指定的值进行分配
+	- 将.hrb 文件中的数据部分先复制到数据段后再启动程序
+- 根据 hello4.c 写了一个汇编语言的 hello5.asm
+
+![capp_str](./day22/capp_str.gif)
+
+	一般操作系统会在可执行文件的头地址加上"Hari"这样的标记，Windows的.exe文件开头两个字节内容就是"MZ"，这里将可执行文件标记放在第四个字节开始
+	因为如果其他不是可执行的文件可能带有相同的字符，被误认为是可执行文件，虽然可以通过扩展名区分，一般情况下不会出错
+	但是如果扩展名可靠的话，就没必要加这样的标记了，就是因为扩展名有时候会出错，所以特地加了4个字节的标记，提高了安全性
 
 
 ## TODO
@@ -957,6 +1051,9 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 | PageUp/Down | 终端滚动     |
 | 命令        | ~~打开应用~~ |
 | C-c         | ~~结束应用~~ |
+| C-l         | 清屏         |
+| C-p         | 上一个命令   |
+| C-k         | 下一个命令   |
 
 #### vi mode
 1. 支持 ESC 进入 NORMAL 模式
