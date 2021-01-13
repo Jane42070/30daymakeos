@@ -22,6 +22,13 @@
 		* [day22 编写 C 语言应用程序](#day22-编写-c-语言应用程序)
 	* [TODO](#todo)
 		* [终端](#终端)
+			* [vi mode](#vi-mode)
+				* [INSERT 模式](#insert-模式)
+				* [NORMAL 模式](#normal-模式)
+				* [REPLACE 模式](#replace-模式)
+				* [VISUAL 模式](#visual-模式)
+				* [V-BLOCK 模式](#v-block-模式)
+				* [V-LINE 模式](#v-line-模式)
 		* [操作系统](#操作系统)
 
 <!-- vim-markdown-toc -->
@@ -65,7 +72,7 @@
 - haribote.sys - 8.95KB
 
 | 地址                    | 用途                             |
-|-------------------------|----------------------------------|
+|||
 | 0x00000000 ~ 0x000fffff | 在启动中使用，但之后变空 （1MB） |
 | 0x00100000 ~ 0x00267fff | 用途保存磁盘的内容 （1440KB）    |
 | 0x00268000 ~ 0x0026f7ff | 空（30KB）                       |
@@ -884,8 +891,8 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 
 ![protectos](./day22/protectos.gif)
 
-- 帮助发现BUG
-	- CPU的异常处理功能，除了可以保护操作系统免遭应用程序的破坏，还可以帮我们在编写应用程序时发现BUG
+- 帮助发现 BUG
+	- CPU 的异常处理功能，除了可以保护操作系统免遭应用程序的破坏，还可以帮我们在编写应用程序时发现 BUG
 	- 编写 bug1.c
 	```c
 	void api_putchar();
@@ -912,37 +919,54 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 |-------------|-----------------------------------------------|
 | 0x00 ~ 0x1f | 都是异常使用的中断                            |
 | 0x00        | 除零异常                                      |
-| 0x06        | 非法指令异常（执行一段CPU没有的机器语言指令） |
+| 0x06        | 非法指令异常（执行一段 CPU 没有的机器语言指令） |
 | 0x0c        | 栈异常                                        |
-| 0x20~...    | IRQ中断                                       |
+| 0x20~...    | IRQ 中断                                       |
 
-- 通过调用段异常0x0c来抛出异常, inthandler0c
+- 通过调用段异常 0x0c 来抛出异常，inthandler0c
 - 添加对异常信息的定位
 
 | 栈元素  | 寄存器   | 解释                                    |
 |---------|----------|-----------------------------------------|
-| esp[0]  | EDI      | esp[0~7]为_asm_inthandler中PUSHAD的结果 |
+| esp[0]  | EDI      | esp[0~7] 为_asm_inthandler 中 PUSHAD 的结果 |
 | esp[1]  | ESI      |                                         |
 | esp[2]  | EBP      |                                         |
 | esp[4]  | EBX      |                                         |
 | esp[5]  | EDX      |                                         |
 | esp[6]  | ECX      |                                         |
 | esp[7]  | EAX      |                                         |
-| esp[8]  | DS       | esp[8~9]为_asm_inthandler中PUSH的结果   |
+| esp[8]  | DS       | esp[8~9] 为_asm_inthandler 中 PUSH 的结果   |
 | esp[9]  | ES       |                                         |
-| esp[10] | 错误编号 | 基本上是0，显示出来也没什么意思         |
+| esp[10] | 错误编号 | 基本上是 0，显示出来也没什么意思         |
 | esp[11] | EIP      |                                         |
-| esp[12] | CS       | esp[10~15]为异常产生时CPU自动PUSH的结果 |
+| esp[12] | CS       | esp[10~15] 为异常产生时 CPU 自动 PUSH 的结果 |
 | esp[13] | EFLAGS   |                                         |
-| esp[14] | ESP      | 应用程序用ESP                           |
-| esp[15] | SS       | 应用程序用SS                            |
+| esp[14] | ESP      | 应用程序用 ESP                           |
+| esp[15] | SS       | 应用程序用 SS                            |
 
 
 ## TODO
 ### 终端
-1. 支持补全
-2. 支持指令回滚
-3. 支持命令打开应用
-4. 支持 vi mode
+| 按键        | 功能         |
+|-------------|--------------|
+| TAB         | 补全         |
+| BACKSPACE   | 退格         |
+| 上下箭头    | 历史命令     |
+| PageUp/Down | 终端滚动     |
+| 命令        | ~~打开应用~~ |
+| C-c         | ~~结束应用~~ |
+
+#### vi mode
+1. 支持 ESC 进入 NORMAL 模式
+##### INSERT 模式
+1. 默认 INSERT 模式
+##### NORMAL 模式
+1. 连续的字母跳转
+2. v 切换 VISUAL
+##### REPLACE 模式
+##### VISUAL 模式
+##### V-BLOCK 模式
+##### V-LINE 模式
+
 ### 操作系统
-1. 支持组合快捷键
+~~1. 支持组合快捷键~~
