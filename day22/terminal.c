@@ -371,6 +371,16 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			sheet_updown(sht, 3);	// 背景层高度位于 task_a 之上
 			reg[7] = (int) sht;
 			break;
+		case 6:
+			sht = (struct SHEET *) ebx;
+			putfonts8_str(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
+			sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+			break;
+		case 7:
+			sht = (struct SHEET *) ebx;
+			boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+			break;
 	}
 	return 0;
 }
