@@ -38,6 +38,7 @@ void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
 void asm_hrb_api();
+int asm_end_app();
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 
