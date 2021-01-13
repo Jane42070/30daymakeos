@@ -884,6 +884,58 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0)
 
 ![protectos](./day22/protectos.gif)
 
+- 帮助发现BUG
+	- CPU的异常处理功能，除了可以保护操作系统免遭应用程序的破坏，还可以帮我们在编写应用程序时发现BUG
+	- 编写 bug1.c
+	```c
+	void api_putchar();
+	void api_end();
+
+	void HariMain()
+	{
+		char a[100];
+		a[10] = 'A';
+		api_putchar(a[10]);
+		a[102] = 'B';
+		api_putchar(a[102]);
+		a[123] = 'C';
+		api_putchar(a[123]);
+		api_end();
+	}
+	```
+	- 运行后没有发生异常，本来该有异常
+	![bug1](./day22/bug1.png)
+	- a 数组保存在栈中，应该产生了栈异常，需要一个函数来处理栈异常
+	- 栈异常的中断号为 0x0c
+
+| 中断号      | 说明                                          |
+|-------------|-----------------------------------------------|
+| 0x00 ~ 0x1f | 都是异常使用的中断                            |
+| 0x00        | 除零异常                                      |
+| 0x06        | 非法指令异常（执行一段CPU没有的机器语言指令） |
+| 0x0c        | 栈异常                                        |
+| 0x20~...    | IRQ中断                                       |
+
+- 通过调用段异常0x0c来抛出异常, inthandler0c
+- 添加对异常信息的定位
+
+| 栈元素  | 寄存器   | 解释                                    |
+|---------|----------|-----------------------------------------|
+| esp[0]  | EDI      | esp[0~7]为_asm_inthandler中PUSHAD的结果 |
+| esp[1]  | ESI      |                                         |
+| esp[2]  | EBP      |                                         |
+| esp[4]  | EBX      |                                         |
+| esp[5]  | EDX      |                                         |
+| esp[6]  | ECX      |                                         |
+| esp[7]  | EAX      |                                         |
+| esp[8]  | DS       | esp[8~9]为_asm_inthandler中PUSH的结果   |
+| esp[9]  | ES       |                                         |
+| esp[10] | 错误编号 | 基本上是0，显示出来也没什么意思         |
+| esp[11] | EIP      |                                         |
+| esp[12] | CS       | esp[10~15]为异常产生时CPU自动PUSH的结果 |
+| esp[13] | EFLAGS   |                                         |
+| esp[14] | ESP      | 应用程序用ESP                           |
+| esp[15] | SS       | 应用程序用SS                            |
 
 
 ## TODO
