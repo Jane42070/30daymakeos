@@ -362,11 +362,26 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	return 0;
 }
 
-// 抛出异常
+// 抛出系统保护异常
 int *inthandler0d(int *esp)
 {
 	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
 	struct TASK *task = task_now();
+	char s[30];
 	term_putstr(term, "\nINT 0x0d:\n General Protected Exception.");
+	sprintf(s, "\nEIP = %08X", esp[11]);
+	term_putstr(term, s);
+	return &(task->tss.esp0);// 强制结束程序
+}
+
+// 抛出栈异常
+int *inthandler0c(int *esp)
+{
+	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
+	struct TASK *task = task_now();
+	char s[30];
+	term_putstr(term, "\nINT 0x0c:\n Stack Exception.");
+	sprintf(s, "\nEIP = %08X", esp[11]);
+	term_putstr(term, s);
 	return &(task->tss.esp0);// 强制结束程序
 }
