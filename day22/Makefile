@@ -92,12 +92,24 @@ bug1.bim : bug1.obj Makefile
 bug1.hrb : bug1.bim Makefile
 	$(BIM2HRB) bug1.bim bug1.hrb 0
 
+bug2.bim : bug2.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:bug2.bim map:bug2.map bug2.obj a_nask.obj
+
+bug2.hrb : bug2.bim Makefile
+	$(BIM2HRB) bug2.bim bug2.hrb 0
+
+bug3.bim : bug3.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:bug3.bim map:bug3.map bug3.obj a_nask.obj
+
+bug3.hrb : bug3.bim Makefile
+	$(BIM2HRB) bug3.bim bug3.hrb 0
+
 #haribote.sys : asmhead.bin bootpack.hrb Makefile
 #	copy /B asmhead.bin+bootpack.hrb haribote.sys
 haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
 
-spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb hello3.hrb a.hrb crack1.hrb crack2.hrb crack3.hrb crack4.hrb crack5.hrb bug1.hrb
+spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb hello3.hrb a.hrb crack1.hrb crack2.hrb crack3.hrb crack4.hrb crack5.hrb bug1.hrb bug2.hrb bug3.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
@@ -113,6 +125,8 @@ spark.img : ipl10.bin haribote.sys Makefile hello.hrb hello2.hrb hello3.hrb a.hr
 		copy from:crack4.hrb to:@: \
 		copy from:crack5.hrb to:@: \
 		copy from:bug1.hrb to:@: \
+		copy from:bug2.hrb to:@: \
+		copy from:bug3.hrb to:@: \
 		imgout:spark.img
 
 # 多文件联编
