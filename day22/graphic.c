@@ -132,7 +132,7 @@ void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s)
 void init_mouse_cursor8(unsigned char *mouse, char bc)
 {
 	static char cursor[16][16] = {
-		"**************.",
+		"**************..",
 		"*OOOOOOOOOOO*...",
 		"*OOOOOOOOOO*....",
 		"*OOOOOOOOO*.....",
