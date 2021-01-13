@@ -20,6 +20,7 @@
 		* [day20 API](#day20-api)
 		* [day21 保护操作系统](#day21-保护操作系统)
 		* [day22 编写 C 语言应用程序](#day22-编写-c-语言应用程序)
+		* [图形处理相关](#图形处理相关)
 	* [TODO](#todo)
 		* [终端](#终端)
 			* [vi mode](#vi-mode)
@@ -1036,23 +1037,23 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 
 ![capp_str](./day22/capp_str.gif)
 
-	一般操作系统会在可执行文件的头地址加上"Hari"这样的标记，Windows的.exe文件开头两个字节内容就是"MZ"，这里将可执行文件标记放在第四个字节开始
+	一般操作系统会在可执行文件的头地址加上"Hari"这样的标记，Windows 的.exe 文件开头两个字节内容就是"MZ"，这里将可执行文件标记放在第四个字节开始
 	因为如果其他不是可执行的文件可能带有相同的字符，被误认为是可执行文件，虽然可以通过扩展名区分，一般情况下不会出错
-	但是如果扩展名可靠的话，就没必要加这样的标记了，就是因为扩展名有时候会出错，所以特地加了4个字节的标记，提高了安全性
+	但是如果扩展名可靠的话，就没必要加这样的标记了，就是因为扩展名有时候会出错，所以特地加了 4 个字节的标记，提高了安全性
 
 - 显示窗口
-	- 写一个显示窗口的API
+	- 写一个显示窗口的 API
 
 | 寄存器 | 存放内容                |
 |--------|-------------------------|
 | EDX    | 5                       |
 | EBX    | 窗口缓冲区              |
-| ESI    | 窗口X轴大小（窗口宽度） |
-| EDI    | 窗口Y轴大小（窗口高度） |
+| ESI    | 窗口 X 轴大小（窗口宽度） |
+| EDI    | 窗口 Y 轴大小（窗口高度） |
 | EAX    | 透明色                  |
 | ECX    | 窗口名称                |
 
-- 返回值：EAX=用于操作窗口的句柄（用于刷新窗口等操作）
+- 返回值：EAX= 用于操作窗口的句柄（用于刷新窗口等操作）
 ```nasm
 ; a_nask.asm
 _api_openwin:	; int api_openwin(char *buf, int sxize, int yxize, int col_inv, char *title)
@@ -1071,7 +1072,7 @@ _api_openwin:	; int api_openwin(char *buf, int sxize, int yxize, int col_inv, ch
 	POP		EDI
 	RET
 ```
-- 编写C语言窗口应用程序
+- 编写 C 语言窗口应用程序
 ```nasm
 int api_openwin(char *buf, int sxize, int yxize, int col_inv, char *title);
 void api_end();
@@ -1085,7 +1086,7 @@ void HariMain()
 	api_end();
 }
 ```
-- 在bootpack.c中将层级管理器的地址存入0x0fe4地址然后在api_hrb()中调用进行窗口的初始化和层级的设置操作
+- 在 bootpack.c 中将层级管理器的地址存入 0x0fe4 地址然后在 api_hrb() 中调用进行窗口的初始化和层级的设置操作
 ```c
 case 5:
 	sht = sheet_alloc(shtctl);
@@ -1104,12 +1105,12 @@ case 5:
 |--------|-----------------|
 | EDX    | 6               |
 | EBX    | 窗口句柄        |
-| ESI    | 显示位置的X坐标 |
-| EDI    | 显示位置的Y坐标 |
+| ESI    | 显示位置的 X 坐标 |
+| EDI    | 显示位置的 Y 坐标 |
 | EAX    | 色号            |
 | ECX    | 字符串长度      |
 | EBP    | 字符串          |
-- 描绘方块API
+- 描绘方块 API
 | 寄存器 | 存放内容 |
 |--------|----------|
 | EDX    | 7        |
@@ -1133,10 +1134,38 @@ case 7:
 	sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
 	break;
 ```
-- 根据API需求写出汇编函数
+- 根据 API 需求写出汇编函数
 
 ![winhelo2](./day22/winhelo2.gif)
 
+### 图形处理相关
+- winhelo2.c 有 7.6KB 这么大，只是实现了一个窗口显示功能而已，用二进制编辑器查看，里面有很多的空地址，都是 char buf[150 * 50]
+	- 相当于插入了 150*50=7500 个字节的"00"，和汇编语言的 RESB 7500 等效，去掉这句，可执行文件就可以小很多
+- 编写一个 api_malloc() 函数
+- memman 初始化
+| 寄存器 | 存放内容                          |
+|--------|-----------------------------------|
+| EDX    | 8                                 |
+| EBX    | memman 的地址                     |
+| EAX    | memman 所管理的内存空间的起始地址 |
+| ECX    | memman 所管理的内存空间的字节数   |
+- malloc
+| 寄存器 | 存放内容               |
+|--------|------------------------|
+| EDX    | 9                      |
+| EBX    | memman 的地址          |
+| ECX    | 需要请求的字节数       |
+| EAX    | 分配到的内存空间的地址 |
+- free
+| 寄存器 | 存放内容               |
+|--------|------------------------|
+| EDX    | 10                     |
+| EBX    | memman 的地址          |
+| EAX    | 需要释放的内存空间地址 |
+| ECX    | 需要释放的字节数       |
+- 修改 terminal.c
+- 修改后只占用 387 字节就可以创建一个窗口了
+![malloc](./day23/malloc.png)
 
 ## TODO
 ### 终端
