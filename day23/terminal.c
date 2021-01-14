@@ -1,4 +1,7 @@
 #include "bootpack.h"
+// extern int key_ctrl;
+// extern int key_alt;
+// extern int key_esc;
 /* sys info */
 static char *kernel_release = "0.2.1";
 static char *kernel_version = "2020 1-11 01:26";
@@ -346,7 +349,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct TERM *term     = (struct TERM *) *((int *) 0x0fec);
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 	struct SHEET *sht;
-	int *reg = &eax + 1;	// eax 后面的地址
+	int *reg = &eax + 1, i;	// eax 后面的地址
 	/* 强行改写通过 PUSHAD 保存的值
 	 * reg[0] : EDI,	reg[1] : ESI,	reg[2] : EBP,	reg[3] : ESP
 	 * reg[4] : EBX,	reg[5] : EDX,	reg[6] : ECX,	reg[7] : EAX
@@ -407,6 +410,43 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			sht = (struct SHEET *) (ebx & 0xfffffffe);
 			hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
 			if ((ebx & 1) == 0) sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
+			break;
+		case 14:
+			sheet_free((struct SHEET *) ebx);
+			break;
+		case 15:
+			for (;;) {
+				io_cli();
+				if (fifo32_status(&task->fifo) == 0) {
+					if (eax != 0) task_sleep(task);	// FIFO 为空，休眠并等待
+					else {
+						io_sti();
+						reg[7] = -1;
+						return 0;
+					}
+				}
+				i = fifo32_get(&task->fifo);
+				io_sti();
+				switch (i) {
+					case 0:
+					case 1:
+						timer_init(term->timer, &task->fifo, 1);
+						timer_settime(term->timer, 50);
+						break;
+					case 2:// 光标显示
+						term->cur_c = COL8_FFFFFF;
+						break;
+					case 3:// 光标隐藏
+						term->cur_c = -1;
+						break;
+					default:
+						if (256 <= i && i <= 511) {// 如果是键盘输入
+							reg[7] = i - 256;
+							// if (key_ctrl != 0) reg[7] ^= 0x10000000;
+							return 0;
+						}
+				}
+			}
 			break;
 	}
 	return 0;
