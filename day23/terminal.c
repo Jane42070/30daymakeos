@@ -11,7 +11,6 @@ static char *operating_sys  = "CLAY/Spark";
 
 void term_task(struct SHEET *sheet, unsigned int memtotal)
 {
-	struct TIMER *timer;
 	struct TASK *task = task_now();
 	// char history[128] = {0};
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
@@ -25,9 +24,9 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	*((int *) 0x0fec) = (int) &term;
 
 	fifo32_init(&task->fifo, 128, fifobuf, task);
-	timer = timer_alloc();
-	timer_init(timer, &task->fifo, 1);
-	timer_settime(timer, 50);
+	term.timer = timer_alloc();
+	timer_init(term.timer, &task->fifo, 1);
+	timer_settime(term.timer, 50);
 	file_readfat(fat, (unsigned char *) (ADR_DISKIMG + 0x000200));
 	// 显示提示符
 	term_putchar(&term, '>', 1);
@@ -49,18 +48,18 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					term.cur_c = COL8_FFFFFF;
 					break;
 				case 1:// 光标显示
-					timer_init(timer, &task->fifo, 0);
+					timer_init(term.timer, &task->fifo, 0);
 					if (term.cur_c >= 0) term.cur_c = COL8_FFFFFF;
 					// 刷新光标
-					timer_settime(timer, 50);
+					timer_settime(term.timer, 50);
 					boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
 				case 0:// 光标隐藏
-					timer_init(timer, &task->fifo, 1);
+					timer_init(term.timer, &task->fifo, 1);
 					if (term.cur_c >= 0) term.cur_c = COL8_000000;
 					// 刷新光标
-					timer_settime(timer, 50);
+					timer_settime(term.timer, 50);
 					boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
