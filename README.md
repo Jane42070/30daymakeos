@@ -1314,6 +1314,10 @@ void HariMain()
 
 ![lines_shutdown](./day23/lines.gif)
 
+- 用键盘输入来消遣一下
+	- 编写了一个小人走路游戏，walk.hrb
+- 强制结束并关闭窗口
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
