@@ -236,6 +236,7 @@ void cmd_cat(struct TERM *term, int *fat, char *cmdline)
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
 		for (i = 0; i < finfo->size; i++) term_putchar(term, p[i], 1);
 		memman_free_4k(memman, (int) p, finfo->size);
+		term_newline(term);
 	} else {// 没有找到文件
 		char *s = 0;
 		sprintf(s, "No such file or directory: %s\n", cmdline + 4);
