@@ -9,6 +9,8 @@ void HariMain(void)
 	struct FIFO32 fifo, keycmd;
 	struct TERM *term;
 	int fifobuf[128], keycmd_buf[32];
+	int j, x, y;
+	struct SHEET *sht;
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
 	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_term;
@@ -178,21 +180,19 @@ void HariMain(void)
 						break;
 					case 256 + 0x0f:// TAB键处理
 						if (key_alt != 0) {// alt + tab
-							key_to ^= 1;
-							if (key_to == 1) {// 切换至终端
-								sheet_updown(sht_term, 2);
-								sheet_updown(sht_win,  1);
+							sheet_updown(shtctl->sheets[1], shtctl->top - 1);
+							if (key_to == 0) {// 切换至终端
+								key_to = 1;
+								cursor_c = -1; // 不显示光标
 								make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
 								make_wtitle8(buf_term, sht_term->bxsize, "terminal", 1);
-								cursor_c = -1; // 不显示光标
 								boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
 								fifo32_put(&task_term->fifo, 2);	// 命令行窗口光标 ON
 							} else {// 切换至任务 A
-								sheet_updown(sht_term, 1);
-								sheet_updown(sht_win,  2);
+								key_to = 0;
+								cursor_c = COL8_000000;	// 显示光标
 								make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
 								make_wtitle8(buf_term, sht_term->bxsize, "terminal", 0);
-								cursor_c = COL8_000000;	// 显示光标
 								fifo32_put(&task_term->fifo, 3);	// 命令行窗口光标 OFF
 							}
 						}
@@ -284,7 +284,20 @@ void HariMain(void)
 				}
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
-					if ((mdec.btn & 0x01) != 0) sheet_slide(sht_win, mx - 80, my - 8);
+					if ((mdec.btn & 0x01) != 0) {
+						// sheet_slide(sht_win, mx - 80, my - 8);
+						for (j = shtctl->top - 1; j > 0; j--) {
+							sht = shtctl->sheets[j];
+							x = mx - sht->vx0;
+							y = my - sht->vy0;
+							if (0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize) {
+								if (sht->buf[y * sht->bxsize + x] != sht->col_inv) {
+									sheet_updown(sht, shtctl->top - 1);
+									break;
+								}
+							}
+						}
+					}
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
