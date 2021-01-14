@@ -293,6 +293,8 @@ void cmd_uname(struct TERM *term, char *cmdline)
 // 启动应用
 int cmd_app(struct TERM *term, int *fat, char *cmdline)
 {
+	struct SHTCTL *shtctl;
+	struct SHEET *sht;
 	int segsiz, datsiz, esp, dathrb;
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FILEINFO *finfo;
@@ -330,6 +332,12 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 			set_segmdesc(gdt + 1004, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
 			for (i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
 			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+			for (i = 0; i < MAX_SHEETS; i++) {
+				sht = &(shtctl->sheets0[i]);
+				// 如果是应用程序遗留的窗口
+				if (sht->flags != 0 && sht->task == task) sheet_free(sht);
+			}
 			memman_free_4k(memman, (int) q, segsiz);
 		}
 		else term_putstr(term, ".hrb file format error.");
@@ -367,6 +375,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			return &(task->tss.esp0);
 		case 5:
 			sht = sheet_alloc(shtctl);
+			sht->task = task;
 			sheet_setbuf(sht, (unsigned char *) ebx + ds_base, esi, edi, eax);
 			make_window8((unsigned char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
 			sheet_slide(sht, 100, 50);
