@@ -5,8 +5,9 @@
 
 		GLOBAL _api_putchar, _api_putstr
 		GLOBAL _api_end
-		GLOBAL _api_openwin, _api_putstrwin, _api_refreshwin
+		GLOBAL _api_openwin, _api_putstrwin, _api_refreshwin, _api_closewin
 		GLOBAL _api_boxfilwin, _api_point, _api_linewin
+		GLOBAL _api_getkey
 		GLOBAL _api_initmalloc, _api_malloc, _api_free
 
 [SECTION .text]
@@ -76,7 +77,15 @@ _api_refreshwin:	; void api_refreshwin(int win, int x0, int y0, int x1, int y1)
 		POP		EDI
 		RET
 
-_api_linewin:	; void api_linewin(int win, int x0, int y0, int x1, int y1, int col)
+_api_closewin:		; void api_closewin(int win)
+		PUSH	EBX
+		MOV		EDX,14
+		MOV		EBX,[ESP+8]		; win
+		INT		0x40
+		POP		EBX
+		RET
+
+_api_linewin:		; void api_linewin(int win, int x0, int y0, int x1, int y1, int col)
 		PUSH	EDI
 		PUSH	ESI
 		PUSH	EBP
@@ -127,6 +136,12 @@ _api_point:		; void api_point(int win, int x, int y, int col)
 		POP		EBX
 		POP		ESI
 		POP		EDI
+		RET
+
+_api_getkey:	; int api_getkey(int mode)
+		MOV		EDX,15
+		MOV		EAX,[ESP+4]		; mode
+		INT		0x40
 		RET
 
 _api_initmalloc:	; void api_initmalloc()
