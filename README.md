@@ -1256,6 +1256,8 @@ for (i = 0, i < len, i++)
 | EBP    | 色号     |
 
 
+![lines](./day23/lines.png)
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
