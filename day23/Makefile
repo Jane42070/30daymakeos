@@ -134,6 +134,12 @@ winhelo3.bim : winhelo3.obj a_nask.obj Makefile
 winhelo3.hrb : winhelo3.bim Makefile
 	$(BIM2HRB) winhelo3.bim winhelo3.hrb 0
 
+star1.bim : star1.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:star1.bim map:star1.map star1.obj a_nask.obj
+
+star1.hrb : star1.bim Makefile
+	$(BIM2HRB) star1.bim star1.hrb 0
+
 #haribote.sys : asmhead.bin bootpack.hrb Makefile
 #	copy /B asmhead.bin+bootpack.hrb haribote.sys
 haribote.sys : asmhead.bin bootpack.hrb Makefile
@@ -143,7 +149,8 @@ spark.img : ipl10.bin haribote.sys Makefile \
 	hello.hrb hello2.hrb hello3.hrb hello4.hrb hello5.hrb a.hrb \
 	crack1.hrb crack2.hrb crack3.hrb crack4.hrb crack5.hrb \
 	bug1.hrb bug2.hrb bug3.hrb \
-	winhelo.hrb winhelo2.hrb winhelo3.hrb
+	winhelo.hrb winhelo2.hrb winhelo3.hrb \
+	star1.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
@@ -166,6 +173,7 @@ spark.img : ipl10.bin haribote.sys Makefile \
 		copy from:winhelo.hrb to:@: \
 		copy from:winhelo2.hrb to:@: \
 		copy from:winhelo3.hrb to:@: \
+		copy from:star1.hrb to:@: \
 		imgout:spark.img
 
 # 多文件联编
