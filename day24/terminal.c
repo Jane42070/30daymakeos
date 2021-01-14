@@ -1,7 +1,5 @@
 #include "bootpack.h"
-// extern int key_ctrl;
-// extern int key_alt;
-// extern int key_esc;
+extern int key_ctrl, key_alt, key_esc;
 /* sys info */
 static char *kernel_release = "0.2.1";
 static char *kernel_version = "2020 1-11 01:26";
@@ -80,8 +78,13 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 						term_runcmd(cmdline, &term, fat, memtotal); // 运行命令
 						term_putchar(&term, '>', 1); // 显示提示符
 						break;
+					case 'l' + 256:
+						if (key_ctrl == 1 && key_alt == 0) {
+							cmd_clear(&term);
+							putfonts8_str_sht(term.sht, 8, 28, COL8_FFFFFF, COL8_000000, ">");
+						}
 					default:
-						if (term.cur_x < 240) {// 如果字符未满一行，继续追加
+						if (term.cur_x < 240 && key_ctrl != 1 && key_alt != 1) {// 如果字符未满一行，继续追加
 							cmdline[term.cur_x / 8 - 2] = i - 256;
 							term_putchar(&term, i - 256, 1);
 						}
@@ -337,7 +340,7 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 			for (i = 0; i < MAX_SHEETS; i++) {
 				sht = &(shtctl->sheets0[i]);
 				// 如果是应用程序遗留的窗口
-				if (sht->flags != 0 && sht->task == task) sheet_free(sht);
+				if ((sht->flags & 0x11) == 0x11 && sht->task == task) sheet_free(sht);
 			}
 			memman_free_4k(memman, (int) q, segsiz);
 		}
@@ -377,6 +380,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		case 5:
 			sht = sheet_alloc(shtctl);
 			sht->task = task;
+			sht->flags |= 0x10;
 			sheet_setbuf(sht, (unsigned char *) ebx + ds_base, esi, edi, eax);
 			make_window8((unsigned char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
 			sheet_slide(sht, 100, 50);
