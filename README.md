@@ -1258,6 +1258,62 @@ for (i = 0, i < len, i++)
 
 ![lines](./day23/lines.png)
 
+- 写一个关闭窗口的API
+
+| 寄存器 | 存放内容 |
+|--------|----------|
+| EDX    | 14       |
+| EBX    | 窗口句柄 |
+
+- 写一个键盘输入API
+	- 在按下终止键之后再结束运行
+
+| 寄存器 | 存放内容                      |
+|--------|-------------------------------|
+| EDX    | 15                            |
+| EAX    | 0没有键盘输入时返回-1，不休眠 |
+|        | 1休眠直到发生键盘输入1        |
+| EAX    | 输入字符编码                  |
+
+- 程序收到回车键后关闭窗口
+
+```c
+int api_openwin(char *buf, int xsiz, int ysiz, int col_inv, char *title);
+void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
+void api_initmalloc();
+char *api_malloc(int size);
+void api_point(int win, int x, int y, int col);
+void api_linewin(int win, int x0, int y0, int x1, int y1, int col);
+void api_refreshwin(int win, int x0, int y0, int x1, int y1);
+int api_getkey(int mode);
+void api_closewin(int win);
+void api_end();
+
+void HariMain()
+{
+	char *buf;
+	int win ,i;
+	api_initmalloc();
+	buf = api_malloc(160 * 100);
+	win = api_openwin(buf, 160, 100, -1, "lines");
+	for (i = 0; i < 8; i++) {
+		api_linewin(win + 1, 8, 26, 77, i * 9 + 26, i);
+		api_linewin(win + 1, 88, 26, i * 9 + 88, 89, i);
+	}
+	api_refreshwin(win, 6, 26, 154, 90);
+
+	for (;;) {
+		if (api_getkey(1) == 0x0a) {
+			break;
+		}
+	}
+	api_closewin(win);
+	api_end();
+}
+```
+
+![lines_shutdown](./day23/lines.gif)
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
