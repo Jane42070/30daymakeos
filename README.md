@@ -1174,6 +1174,54 @@ case 7:
 
 ![malloc](./day23/malloc.png)
 
+- 画点API函数
+
+| 寄存器 | 存放内容        |
+|--------|-----------------|
+| EDX    | 11              |
+| EBX    | 窗口句柄        |
+| ESI    | 显示位置的X坐标 |
+| EDI    | 显示位置的Y坐标 |
+| EAX    | 色号            |
+
+- 修改 termnial.c 的 hrb_api()
+```c
+case 11:
+	sht = (struct SHEET *) ebx;
+	sht->buf[sht->bxsize * edi + esi] = eax;
+	sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
+	break;
+```
+- 创建 star1.c
+```c
+int api_openwin(char *buf, int xsiz, int ysiz, int col_inv, char *title);
+void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
+void api_initmalloc();
+char *api_malloc(int size);
+void api_point(int win, int x, int y, int col);
+void api_end();
+
+int rand(void);// 产生 0~32767 之间的随机数
+
+void HariMain()
+{
+	char *buf;
+	int win, i, x, y;
+	api_initmalloc();
+	buf = api_malloc(150 * 100);
+	win = api_openwin(buf, 150, 100, -1, "stars");
+	api_boxfilwin(win, 6, 26, 143, 93, 0);
+	for (i = 0; i < 50; i++) {
+		x = (rand() % 137) + 6;
+		y = (rand() % 64) + 26;
+		api_point(win, x, y, 3/*黄色*/);
+	}
+	api_end();
+}
+```
+![star1](./day23/star1.png)
+
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
