@@ -37,6 +37,8 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 			sht->flags = SHEET_USE;
 			// 隐藏
 			sht->height = -1;
+			// 不使用自动关闭功能
+			sht->task = 0;
 			return sht;
 		}
 	}
