@@ -9,8 +9,8 @@ void HariMain(void)
 	struct FIFO32 fifo, keycmd;
 	struct TERM *term;
 	int fifobuf[128], keycmd_buf[32];
-	int j, x, y;
-	struct SHEET *sht;
+	int j, x, y, mmx = -1, mmy = -1;
+	struct SHEET *sht = 0;
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
 	struct SHEET *sht_back, *sht_mouse, *sht_win, *sht_term;
@@ -284,20 +284,6 @@ void HariMain(void)
 				}
 			} else if (512 <= i && i <= 767) {
 				if (mouse_decode(&mdec, i - 512) != 0) {
-					if ((mdec.btn & 0x01) != 0) {
-						// sheet_slide(sht_win, mx - 80, my - 8);
-						for (j = shtctl->top - 1; j > 0; j--) {
-							sht = shtctl->sheets[j];
-							x = mx - sht->vx0;
-							y = my - sht->vy0;
-							if (0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize) {
-								if (sht->buf[y * sht->bxsize + x] != sht->col_inv) {
-									sheet_updown(sht, shtctl->top - 1);
-									break;
-								}
-							}
-						}
-					}
 					// 鼠标移动
 					mx += mdec.x;
 					my += mdec.y;
@@ -308,6 +294,42 @@ void HariMain(void)
 					if (my > binfo->scrny - 1) my = binfo->scrny - 1;
 					// 描绘鼠标
 					sheet_slide(sht_mouse, mx, my);
+					if ((mdec.btn & 0x01) != 0) {
+						if (mmx < 0) {
+							// 如果处于通常模式
+							// 按照从上到下的顺序寻找鼠标所指向的图层
+							for (j = shtctl->top - 1; j > 0; j--) {
+								sht = shtctl->sheets[j];
+								x = mx - sht->vx0;
+								y = my - sht->vy0;
+								if (0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize) {
+									if (sht->buf[y * sht->bxsize + x] != sht->col_inv) {
+										sheet_updown(sht, shtctl->top - 1);
+										// 点击的区域是标题栏的区域
+										if (3 <= x && x < sht->bxsize - 3 && 3 <= y && y < 21) {
+											// 进入窗口移动模式
+											mmx = mx;
+											mmy = my;
+										}
+										break;
+									}
+								}
+							}
+						} else {
+							// 如果处于窗口移动模式
+							// 计算鼠标的移动距离
+							x = mx - mmx;
+							y = my - mmy;
+							sheet_slide(sht, sht->vx0 + x, sht->vy0 + y);
+							// 更新为移动后的坐标
+							mmx = mx;
+							mmy = my;
+						}
+					} else {
+						// 没有按下左键
+						// 返回普通模式
+						mmx = -1;
+					}
 				}
 			}
 			switch (i) {
