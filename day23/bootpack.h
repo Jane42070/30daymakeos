@@ -339,6 +339,7 @@ void cmd_ls(struct TERM *term);
 void cmd_cat(struct TERM *term, int *fat, char *cmdline);
 void cmd_uname(struct TERM *term, char *cmdline);
 int cmd_app(struct TERM *term, int *fat, char *cmdline);
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 int *inthandler0d(int *esp);
 int *inthandler0c(int *esp);
