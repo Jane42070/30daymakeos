@@ -1,6 +1,6 @@
 #include "bootpack.h"
 #define KEYCMD_LED 0xed
-int key_esc = 0;
+int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, keycmd_wait = -1, keycmd_time = 0, key_esc = 0;
 
 void HariMain(void)
 {
@@ -35,7 +35,7 @@ void HariMain(void)
 		0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0,   0,   '_', 0,   0,   0,   0,   0,   0,   0,   0,   0,   '|', 0,   0
 	};
-	int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1, keycmd_time = 0;
+	int key_leds = (binfo->leds >> 4) & 7;
 
 	unsigned int memtotal;
 	char s[40];
