@@ -49,8 +49,8 @@ void HariMain(void)
 	init_pic();								// 初始化 PIC
 	io_sti();								// IDT/PIC 的初始化已经完成，开放 CPU 的中断
 	init_pit();								// 设定定时器频率
-	io_out8(PIC0_IMR, 0xf8);				// 开放PIC1和键盘中断(11111001)
-	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断(11101111)
+	io_out8(PIC0_IMR, 0xf8);				// 开放 PIC1 和键盘中断 (11111001)
+	io_out8(PIC1_IMR, 0xef);				// 开放鼠标中断 (11101111)
 	fifo32_init(&fifo, 128, fifobuf, 0);
 	fifo32_init(&keycmd, 32, keycmd_buf, 0);
 	timer   = timer_alloc();
@@ -94,7 +94,7 @@ void HariMain(void)
 	task_term->tss.gs = 1 * 8;
 	*((int *) (task_term->tss.esp + 4)) = (int) sht_term;
 	*((int *) (task_term->tss.esp + 8)) = memtotal;
-	task_run(task_term, 2, 2);	// 第二等级，0.02秒
+	task_run(task_term, 2, 2);	// 第二等级，0.02 秒
 
 	// sht_win
 	sht_win   = sheet_alloc(shtctl);
@@ -178,7 +178,7 @@ void HariMain(void)
 						}
 						else fifo32_put(&task_term->fifo, 8 + 256);
 						break;
-					case 256 + 0x0f:// TAB键处理
+					case 256 + 0x0f:// TAB 键处理
 						if (key_alt != 0) {// alt + tab
 							sheet_updown(shtctl->sheets[1], shtctl->top - 1);
 							if (key_to == 0) {// 切换至终端
@@ -310,6 +310,18 @@ void HariMain(void)
 											// 进入窗口移动模式
 											mmx = mx;
 											mmy = my;
+										}
+										if (sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19) {
+											// 点击 x 按钮
+											if (sht->task != 0) {
+												// 该窗口是否为应用程序
+												term = (struct TERM *) *((int *) 0x0fec);
+												term_putstr(term, "\nBreak(Mouse)");
+												io_cli();// 强制结束处理中，禁止切换任务
+												task_term->tss.eax = (int) &(task_term->tss.esp0);
+												task_term->tss.eip = (int) asm_end_app;
+												io_sti();
+											}
 										}
 										break;
 									}
