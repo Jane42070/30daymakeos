@@ -22,6 +22,7 @@
 		* [day22 编写 C 语言应用程序](#day22-编写-c-语言应用程序)
 		* [day23 图形处理相关](#day23-图形处理相关)
 		* [day24 窗口操作](#day24-窗口操作)
+		* [day25 增加命令行窗口](#day25-增加命令行窗口)
 	* [TODO](#todo)
 		* [终端](#终端)
 			* [vi mode](#vi-mode)
@@ -1487,6 +1488,9 @@ void timer_cancelall(struct FIFO32 *fifo)
 }
 ```
 
+### day25 增加命令行窗口
+- 蜂鸣器发生
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
@@ -1515,3 +1519,4 @@ void timer_cancelall(struct FIFO32 *fifo)
 
 ### 操作系统
 ~~1. 支持组合快捷键~~
+2. time 软件，计算程序运行时间
