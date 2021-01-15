@@ -47,18 +47,22 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					break;
 				case 1:// 光标显示
 					timer_init(term.timer, &task->fifo, 0);
-					if (term.cur_c >= 0) term.cur_c = COL8_FFFFFF;
+					if (term.cur_c >= 0) {
+						term.cur_c = COL8_FFFFFF;
+						boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+					}
 					// 刷新光标
 					timer_settime(term.timer, 50);
-					boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
 				case 0:// 光标隐藏
 					timer_init(term.timer, &task->fifo, 1);
-					if (term.cur_c >= 0) term.cur_c = COL8_000000;
+					if (term.cur_c >= 0) {
+						term.cur_c = COL8_000000;
+						boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+					}
 					// 刷新光标
 					timer_settime(term.timer, 50);
-					boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
 			}
@@ -474,6 +478,20 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				break;
 			case 19:
 				timer_free((struct TIMER *) ebx);
+				break;
+			case 20:
+				if (eax == 0) {
+					i = io_in8(0x61);
+					io_out8(0x61, i & 0x0d);
+				} else {
+					i = 1193180000 / eax;
+					io_out8(0x43, 0xb6);
+
+					io_out8(0x42, i & 0xff);
+					io_out8(0x42, i >> 8);
+					i = io_in8(0x61);
+					io_out8(0x61, (i | 0x03) & 0x0f);
+				}
 				break;
 	}
 	return 0;
