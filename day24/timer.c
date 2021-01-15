@@ -32,7 +32,8 @@ struct TIMER *timer_alloc()
 	int i;
 	for (i = 0; i < MAX_TIMER; i++) {
 		if (timerctl.timers0[i].flags == 0) {
-			timerctl.timers0[i].flags = TIMER_FLAGS_ALLOC;
+			timerctl.timers0[i].flags  = TIMER_FLAGS_ALLOC;
+			timerctl.timers0[i].flags2 = 0;
 			return &timerctl.timers0[i];
 		}
 	}
@@ -125,4 +126,53 @@ void inthandler20(int *esp)
 	timerctl.t0 = timer;
 	timerctl.next = timer->timeout;
 	if (ts != 0) task_switch();
+}
+
+int timer_cancel(struct TIMER *timer)
+{
+	int e;
+	struct TIMER *t;
+	e = io_load_eflags();
+	io_cli();// 设置过程中禁止改变定时器状态
+	if (timer->flags == TIMER_FLAGS_ACTING) {// 是否需要取消
+		// 第一个定时器的处理
+		if (timer == timerctl.t0) {
+			// 如果是哨兵就跳过
+			t = timer->next;
+			timerctl.t0 = t;
+			timerctl.next = t->timeout;
+		} else {
+			// 非第一个定时器的取消处理
+			// 找到 timer 前一个定时器
+			t = timerctl.t0;
+			for (;;) {
+				if (t->next == timer) break;
+				t = t->next;
+			}
+			// 将之前"timer的下一个"指向"tiemr的下一个"
+			t->next = timer->next;
+		}
+		timer->flags = TIMER_FLAGS_ALLOC;
+		io_store_eflags(e);
+		return 1; // 取消处理成功
+	}
+	io_store_eflags(e);
+	return 0;// 不需要取消处理
+}
+
+void timer_cancelall(struct FIFO32 *fifo)
+{
+	int e, i;
+	struct TIMER *t;
+	e = io_load_eflags();
+	io_cli();
+	for (i = 0; i < MAX_TIMER; i++) {
+		t = &timerctl.timers0[i];
+		// 当前定时器是否正在已经分配，是否为应用程序的定时器，其缓冲区是否是目标定时器
+		if (t->flags != 0 && t->flags2 != 0 && t->fifo == fifo) {
+			timer_cancel(t);
+			timer_free(t);
+		}
+	}
+	io_store_eflags(e);
 }
