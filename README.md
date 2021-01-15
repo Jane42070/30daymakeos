@@ -1339,6 +1339,154 @@ void HariMain()
 
 ![osdemo](./day24/osdemo.gif)
 
+- 定时器 API
+	- 让应用程序也能使用定时器进行一系列操作
+
+- 获取定时器 timer_alloc
+
+| 寄存器 | 存放内容   |
+|--------|------------|
+| EDX    | 16         |
+| EAX    | 定时器句柄 |
+
+- 设置定时器的发送数据 timer_init
+
+| 寄存器 | 存放内容   |
+|--------|------------|
+| EDX    | 17         |
+| EBX    | 定时器句柄 |
+| EAX    | 数据       |
+
+- 定时器时间设定 timer_settime
+
+| 寄存器 | 存放内容   |
+|--------|------------|
+| EDX    | 18         |
+| EBX    | 定时器句柄 |
+| EAX    | 时间       |
+
+- 释放定时器 timer_free
+
+| 寄存器 | 存放内容   |
+|--------|------------|
+| EDX    | 19         |
+| EBX    | 定时器句柄 |
+
+- 在 a_nask.asm 中写对应 API
+	- 创建一个计时的应用 noodle.c
+
+```c
+#include <stdio.h>
+
+int api_openwin(char *buf, int xsiz, int ysiz, int col_inv, char *title);
+void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
+void api_initmalloc();
+char *api_malloc(int size);
+void api_point(int win, int x, int y, int col);
+void api_refreshwin(int win, int x0, int y0, int x1, int y1);
+void api_putstrwin(int win, int x, int y, int col, int len, char *str);
+int api_getkey(int mode);
+int api_alloctimer();
+void api_inittimer(int timer, int data);
+void api_settimer(int timer, int time);
+void api_closewin(int win);
+void api_end();
+
+void HariMain()
+{
+	char *buf, s[12] = {0};
+	int win, timer, sec = 0, min = 0, hour = 0;
+	api_initmalloc();
+	buf = api_malloc(150 * 50);
+	win = api_openwin(buf, 150, 50, -1, "Noodle");
+	timer = api_alloctimer();
+	api_inittimer(timer, 128);
+	for (;;) {
+		sprintf(s, "%5d:%02d:%02d", hour, min, sec);
+		api_boxfilwin(win, 28, 27, 115, 41, 7);
+		api_putstrwin(win, 28, 27, 0, 11, s);
+
+		api_settimer(timer, 100);
+		if (api_getkey(1) != 128) break;
+		sec++;
+		if (sec == 60) {
+			sec = 0;
+			min++;
+			if (min == 60) {
+				min = 0;
+				hour++;
+			}
+		}
+	}
+	api_end();
+}
+```
+![noodle](./day24/noodle.png)
+
+- 当定时器结束后会发送超时的数据，如果这时应用程序已经结束了，定时器的数据就会被发送到终端，终端就会显示一个字符
+- 编写一个取消定时器的函数，达到效果后结束定时器
+
+```c
+int timer_cancel(struct TIMER *timer)
+{
+	int e;
+	struct TIMER *t;
+	e = io_load_eflags();
+	io_cli();// 设置过程中禁止改变定时器状态
+	if (timer->flags == TIMER_FLAGS_ACTING) {// 是否需要取消
+		// 第一个定时器的处理
+		if (timer == timerctl.t0) {
+			// 如果是哨兵就跳过
+			t = timer->next;
+			timerctl.t0 = t;
+			timerctl.next = t->timeout;
+		} else {
+			// 非第一个定时器的取消处理
+			// 找到 timer 前一个定时器
+			t = timerctl.t0;
+			for (;;) {
+				if (t->next == timer) break;
+				t = t->next;
+			}
+			// 将之前"timer 的下一个"指向"tiemr 的下一个"
+			t->next = timer->next;
+		}
+		timer->flags = TIMER_FLAGS_ALLOC;
+		io_store_eflags(e);
+		return 1; // 取消处理成功
+	}
+	io_store_eflags(e);
+	return 0;// 不需要取消处理
+}
+```
+- 在定时器结构体里添加 flags2 是否为应用程序定时器的标志
+	- 其他关联代码进行相应修改
+- 在 hrb_api 中对请求定时器的应用将定时器的应用标志置为 1
+```c
+reg[7] = (int) timer_alloc();
+((struct TIMER *) reg[7])->flags2 = 1;	// 允许自动取消
+```
+- 在应用程序结束后自动结束不需要的定时器
+
+```c
+void timer_cancelall(struct FIFO32 *fifo)
+{
+	int e, i;
+	struct TIMER *t;
+	e = io_load_eflags();
+	io_cli();
+	for (i = 0; i < MAX_TIMER; i++) {
+		t = &timerctl.timers0[i];
+		// 当前定时器是否正在已经分配，是否为应用程序的定时器，其缓冲区是否是目标定时器
+		if (t->flags != 0 && t->flags2 != 0 && t->fifo == fifo) {
+			timer_cancel(t);
+			timer_free(t);
+		}
+	}
+	io_store_eflags(e);
+}
+```
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
