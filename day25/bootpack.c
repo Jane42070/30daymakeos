@@ -190,32 +190,14 @@ void HariMain(void)
 						else fifo32_put(&key_win->task->fifo, 8 + 256);
 						break;
 					case 256 + 0x0f:// TAB 键处理
-						if (key_alt != 0) {// alt + tab
+						if (key_alt == 1) {// alt + tab
 							cursor_c = keywin_off(key_win, sht_win, cursor_c, cursor_x);
 							j = key_win->height - 1;
 							if (j == 0) j = shtctl->top - 1;
 							key_win = shtctl->sheets[j];
 							cursor_c = keywin_on(key_win, sht_win, cursor_c);
 							sheet_updown(shtctl->sheets[1], shtctl->top - 1);
-							// if (key_to == 0) {// 切换至终端
-							//     key_to = 1;
-							//     cursor_c = -1; // 不显示光标
-							//     make_wtitle8(buf_win, sht_win->bxsize, "task_a", 0);
-							//     make_wtitle8(buf_term, sht_term->bxsize, "terminal", 1);
-							//     boxfill8(sht_win->buf, sht_win->bxsize, COL8_FFFFFF, cursor_x, 28, cursor_x + 7, 43);
-							//     fifo32_put(&task_term->fifo, 2);	// 命令行窗口光标 ON
-							// } else {// 切换至任务 A
-							//     key_to = 0;
-							//     cursor_c = COL8_000000;	// 显示光标
-							//     make_wtitle8(buf_win, sht_win->bxsize, "task_a", 1);
-							//     make_wtitle8(buf_term, sht_term->bxsize, "terminal", 0);
-							//     fifo32_put(&task_term->fifo, 3);	// 命令行窗口光标 OFF
-							// }
 						}
-						sheet_refresh(sht_win, 0, 0, sht_win->bxsize, 21);
-						sheet_refresh(sht_term, 0, 0, sht_term->bxsize, 21);
-						if (cursor_c >= 0) boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 						break;
 					case 256 + 0xae:
 						if (key_ctrl != 0 && task_term->tss.ss0 != 0) {// ctrl + c
@@ -373,8 +355,8 @@ void HariMain(void)
 					if (cursor_c >= 0) {
 						cursor_c = COL8_000000;
 						boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 					}
+					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 					break;
 				case 0:
 					timer_init(timer, &fifo, 1);
@@ -382,8 +364,8 @@ void HariMain(void)
 					if (cursor_c >= 0) {
 						cursor_c = COL8_FFFFFF;
 						boxfill8(sht_win->buf, sht_win->bxsize, cursor_c, cursor_x, 28, cursor_x + 7, 43);
-						sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 					}
+					sheet_refresh(sht_win, cursor_x, 28, cursor_x + 8, 44);
 					break;
 			}
 		}
