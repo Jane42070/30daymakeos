@@ -342,6 +342,7 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 				// 如果是应用程序遗留的窗口
 				if ((sht->flags & 0x11) == 0x11 && sht->task == task) sheet_free(sht);
 			}
+			timer_cancelall(&task->fifo);
 			memman_free_4k(memman, (int) q, segsiz);
 		}
 		else term_putstr(term, ".hrb file format error.");
@@ -453,7 +454,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 						term->cur_c = -1;
 						break;
 					default:
-						if (256 <= i && i <= 511) {// 如果是键盘输入
+						if (i >= 256) {// 如果是键盘输入
 							reg[7] = i - 256;
 							// if (key_ctrl != 0) reg[7] ^= 0x10000000;
 							return 0;
@@ -461,6 +462,19 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				}
 			}
 			break;
+			case 16:
+				reg[7] = (int) timer_alloc();
+				((struct TIMER *) reg[7])->flags2 = 1;	// 允许自动取消
+				break;
+			case 17:
+				timer_init((struct TIMER *) ebx, &task->fifo, eax + 256);
+				break;
+			case 18:
+				timer_settime((struct TIMER *) ebx, eax);
+				break;
+			case 19:
+				timer_free((struct TIMER *) ebx);
+				break;
 	}
 	return 0;
 }
