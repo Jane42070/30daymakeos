@@ -238,9 +238,12 @@ void putfonts8_str_sht(struct SHEET *sht, int x, int y, int c, char b, char *s);
 // 计时时间 timeout
 // 缓冲区 fifo
 // 剩余时间没有后需要向缓冲区写入的数据 data
+// 状态标志 flags
+// 是否为应用程序 flags2
 struct TIMER {
 	struct TIMER *next;
-	unsigned int timeout, flags;
+	unsigned int timeout;
+	char flags, flags2;
 	struct FIFO32 *fifo;
 	int data;
 };
@@ -261,6 +264,8 @@ struct TIMER *timer_alloc();
 void timer_free(struct TIMER *timer);
 void timer_init(struct TIMER *timer, struct FIFO32 *fifo, int data);
 void timer_settime(struct TIMER *timer, unsigned int timeout);
+int timer_cancel(struct TIMER *timer);
+void timer_cancelall(struct FIFO32 *fifo);
 void inthandler20(int *esp);
 
 /* mtask.c */
