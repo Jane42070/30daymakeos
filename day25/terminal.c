@@ -388,8 +388,9 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			sht->flags |= 0x10;
 			sheet_setbuf(sht, (unsigned char *) ebx + ds_base, esi, edi, eax);
 			make_window8((unsigned char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
-			sheet_slide(sht, 100, 50);
-			sheet_updown(sht, 3);	// 背景层高度位于 task_a 之上
+			// 窗口出现在屏幕中间
+			sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize - edi) / 2);
+			sheet_updown(sht, shtctl->top);	// 新出现的窗口位于最顶层
 			reg[7] = (int) sht;
 			break;
 		case 6:
