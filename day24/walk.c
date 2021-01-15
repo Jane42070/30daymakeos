@@ -3,7 +3,6 @@ void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
 void api_initmalloc();
 char *api_malloc(int size);
 void api_point(int win, int x, int y, int col);
-void api_linewin(int win, int x0, int y0, int x1, int y1, int col);
 void api_refreshwin(int win, int x0, int y0, int x1, int y1);
 void api_putstrwin(int win, int x, int y, int col, int len, char *str);
 int api_getkey(int mode);
