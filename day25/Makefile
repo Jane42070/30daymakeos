@@ -164,6 +164,18 @@ noodle.bim : noodle.obj a_nask.obj Makefile
 noodle.hrb : noodle.bim Makefile
 	$(BIM2HRB) noodle.bim noodle.hrb 0
 
+beepdown.bim : beepdown.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:beepdown.bim map:beepdown.map beepdown.obj a_nask.obj
+
+beepdown.hrb : beepdown.bim Makefile
+	$(BIM2HRB) beepdown.bim beepdown.hrb 0
+
+beepup.bim : beepup.obj a_nask.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:beepup.bim map:beepup.map beepup.obj a_nask.obj
+
+beepup.hrb : beepup.bim Makefile
+	$(BIM2HRB) beepup.bim beepup.hrb 0
+
 #haribote.sys : asmhead.bin bootpack.hrb Makefile
 #	copy /B asmhead.bin+bootpack.hrb haribote.sys
 haribote.sys : asmhead.bin bootpack.hrb Makefile
@@ -175,7 +187,8 @@ spark.img : ipl10.bin haribote.sys Makefile \
 	bug1.hrb bug2.hrb bug3.hrb \
 	winhelo.hrb winhelo2.hrb winhelo3.hrb \
 	star1.hrb star2.hrb \
-	lines.hrb walk.hrb noodle.hrb
+	lines.hrb walk.hrb noodle.hrb \
+	beepdown.hrb beepup.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:ipl10.bin len:512 from:0 to:0 \
 		copy from:haribote.sys to:@: \
@@ -203,6 +216,8 @@ spark.img : ipl10.bin haribote.sys Makefile \
 		copy from:lines.hrb to:@: \
 		copy from:walk.hrb to:@: \
 		copy from:noodle.hrb to:@: \
+		copy from:beepdown.hrb to:@: \
+		copy from:beepup.hrb to:@: \
 		imgout:spark.img
 
 # 多文件联编
