@@ -142,14 +142,19 @@ void HariMain(void)
 			io_sti();
 			if (key_win->flags == 0) {// 输入窗口被关闭
 				key_win = shtctl->sheets[shtctl->top - 1];
+				keywin_on(key_win);
 			}
 			// 处理键盘数据
 			if (256 <= i && i <= 511) {
 				if (i < 0x80 + 256) {// 将按键编码转化为字符编码
-					if (key_shift == 0) s[0] = keytable0[i - 256];
-					else s[0] = keytable1[i - 256];
+					if (key_shift == 0) {
+						s[0] = keytable0[i - 256];
+					} else {
+						s[0] = keytable1[i - 256];
+					}
+				} else {
+					s[0] = 0;
 				}
-				else s[0] = 0;
 				if ('A' <= s[0] && s[0] <= 'Z') {// 当输入的字符为英文字符时
 					// 当 CapsLock 和 Shift 没有打开，或者都打开时
 					if (((key_leds & 4) == 0 && key_shift == 0) || ((key_leds & 4) != 0 && key_shift != 0)) {
@@ -160,8 +165,14 @@ void HariMain(void)
 					fifo32_put(&key_win->task->fifo, s[0] + 256);
 				}
 				switch (i) {
+					case 256 + 0x1c:// 回车键
+						fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
+						break;
+					case 256 + 0x0e:// 退格键
+						fifo32_put(&key_win->task->fifo, 8 + 256);
+						break;
 					case 256 + 0x0f:// TAB 键处理
-						if (key_alt == 1) {// alt + tab
+						if (key_alt != 0) {// alt + tab
 							keywin_off(key_win);
 							j = key_win->height - 1;
 							if (j == 0) j = shtctl->top - 1;
@@ -181,9 +192,6 @@ void HariMain(void)
 								io_sti();
 							}
 						}
-						break;
-					case 256 + 0x1c:// 回车键
-						fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
 						break;
 					case 256 + 0x2a:// lShift ON
 						key_shift |= 1;
