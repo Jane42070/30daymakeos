@@ -12,16 +12,15 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	struct TASK *task = task_now();
 	// char history[128] = {0};
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	int i, fifobuf[128], *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
+	int i, *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
 	struct TERM term;
 	char cmdline[30] = {0};
 	term.sht   = sheet;
 	term.cur_x = 8;
 	term.cur_y = 28;
 	term.cur_c = -1;
-	*((int *) 0x0fec) = (int) &term;
+	task->term = &term;
 
-	fifo32_init(&task->fifo, 128, fifobuf, task);
 	term.timer = timer_alloc();
 	timer_init(term.timer, &task->fifo, 1);
 	timer_settime(term.timer, 50);
@@ -324,22 +323,24 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 		name[i + 4] = 0;
 		finfo = file_search(name, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
 	}
-	if (finfo != 0) {// 找到文件
+
+	if (finfo != 0) {
+		// 找到文件
 		p = (char *) memman_alloc_4k(memman, finfo->size);
-		*((int *) 0xfe8) = (int) p;
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
-		// 如果文件大于 36 字节，那么就是 C 语言写的应用程序
 		if (finfo->size >= 36 && strncmp(p + 4, "Hari", 4) == 0 && *p == 0x00) {
 			segsiz = *((int *) (p + 0x0000));
 			esp    = *((int *) (p + 0x000c));
 			datsiz = *((int *) (p + 0x0010));
 			dathrb = *((int *) (p + 0x0014));
 			q = (char *) memman_alloc_4k(memman, segsiz);
-			*((int *) 0xfe8) = (int) q;
-			set_segmdesc(gdt + 1003, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
-			set_segmdesc(gdt + 1004, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
-			for (i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
-			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			task->ds_base = (int) q;
+			set_segmdesc(gdt + task->sel / 8 + 1000, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt + task->sel / 8 + 2000, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
+			for (i = 0; i < datsiz; i++) {
+				q[esp + i] = p[dathrb + i];
+			}
+			start_app(0x1b, task->sel + 1000 * 8, esp, task->sel + 2000 * 8, &(task->tss.esp0));
 			shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 			for (i = 0; i < MAX_SHEETS; i++) {
 				sht = &(shtctl->sheets0[i]);
@@ -360,9 +361,9 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 // 应用程序 API
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int ds_base = *((int *) 0xfe8);
 	struct TASK *task     = task_now();
-	struct TERM *term     = (struct TERM *) *((int *) 0x0fec);
+	int ds_base = task->ds_base;
+	struct TERM *term     = task->term;
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 	struct SHEET *sht;
 	int *reg = &eax + 1, i;	// eax 后面的地址
@@ -535,8 +536,8 @@ void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col)
 // 抛出系统保护异常
 int *inthandler0d(int *esp)
 {
-	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
 	struct TASK *task = task_now();
+	struct TERM *term = task->term;
 	char s[30];
 	term_putstr(term, "\nINT 0x0d:\n General Protected Exception.");
 	sprintf(s, "\nEIP = %08X", esp[11]);
@@ -547,8 +548,8 @@ int *inthandler0d(int *esp)
 // 抛出栈异常
 int *inthandler0c(int *esp)
 {
-	struct TERM *term = (struct TERM *) *((int *) 0x0fec);
 	struct TASK *task = task_now();
+	struct TERM *term = task->term;
 	char s[30];
 	term_putstr(term, "\nINT 0x0c:\n Stack Exception.");
 	sprintf(s, "\nEIP = %08X", esp[11]);
