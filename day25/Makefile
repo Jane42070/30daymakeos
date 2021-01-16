@@ -68,125 +68,135 @@ crack5.hrb : crack5.asm Makefile
 	$(NASK) crack5.asm crack5.hrb crack5.lst
 
 hello5.bim : hello5.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello5.bim map:hello5.map hello5.obj
+	$(OBJ2BIM) @$(RULEFILE) out:hello5.bim stack:1k map:hello5.map hello5.obj
 
 hello5.hrb : hello5.bim Makefile
 	$(BIM2HRB) hello5.bim hello5.hrb 0
 
 # C 语言应用程序
 a.bim : a.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:a.bim map:a.map a.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:a.bim stack:1k map:a.map a.obj a_nask.obj
 
 a.hrb : a.bim Makefile
 	$(BIM2HRB) a.bim a.hrb 0
 
 hello3.bim : hello3.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello3.bim map:hello3.map hello3.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:hello3.bim stack:1k map:hello3.map hello3.obj a_nask.obj
 
 hello3.hrb : hello3.bim Makefile
 	$(BIM2HRB) hello3.bim hello3.hrb 0
 
 hello4.bim : hello4.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:hello4.bim map:hello4.map hello4.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:hello4.bim stack:1k map:hello4.map hello4.obj a_nask.obj
 
 hello4.hrb : hello4.bim Makefile
 	$(BIM2HRB) hello4.bim hello4.hrb 0
 
 crack1.bim : crack1.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:crack1.bim map:crack1.map crack1.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:crack1.bim stack:1k map:crack1.map crack1.obj a_nask.obj
 
 crack1.hrb : crack1.bim Makefile
 	$(BIM2HRB) crack1.bim crack1.hrb 0
 
 bug1.bim : bug1.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:bug1.bim map:bug1.map bug1.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:bug1.bim stack:1k map:bug1.map bug1.obj a_nask.obj
 
 bug1.hrb : bug1.bim Makefile
 	$(BIM2HRB) bug1.bim bug1.hrb 0
 
 bug2.bim : bug2.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:bug2.bim map:bug2.map bug2.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:bug2.bim stack:1k map:bug2.map bug2.obj a_nask.obj
 
 bug2.hrb : bug2.bim Makefile
 	$(BIM2HRB) bug2.bim bug2.hrb 0
 
 bug3.bim : bug3.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:bug3.bim map:bug3.map bug3.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:bug3.bim stack:1k map:bug3.map bug3.obj a_nask.obj
 
 bug3.hrb : bug3.bim Makefile
 	$(BIM2HRB) bug3.bim bug3.hrb 0
 
 winhelo.bim : winhelo.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim map:winhelo.map winhelo.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:winhelo.bim stack:1k map:winhelo.map winhelo.obj a_nask.obj
 
 winhelo.hrb : winhelo.bim Makefile
 	$(BIM2HRB) winhelo.bim winhelo.hrb 0
 
 winhelo2.bim : winhelo2.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:winhelo2.bim map:winhelo2.map winhelo2.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:winhelo2.bim stack:1k map:winhelo2.map winhelo2.obj a_nask.obj
 
 winhelo2.hrb : winhelo2.bim Makefile
 	$(BIM2HRB) winhelo2.bim winhelo2.hrb 0
 
 winhelo3.bim : winhelo3.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:winhelo3.bim map:winhelo3.map winhelo3.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:winhelo3.bim stack:1k map:winhelo3.map \
+		winhelo3.obj a_nask.obj
 
 winhelo3.hrb : winhelo3.bim Makefile
-	$(BIM2HRB) winhelo3.bim winhelo3.hrb 0
+	$(BIM2HRB) winhelo3.bim winhelo3.hrb 40k
 
 star1.bim : star1.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:star1.bim map:star1.map star1.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:star1.bim stack:1k map:star1.map \
+		star1.obj a_nask.obj
 
 star1.hrb : star1.bim Makefile
-	$(BIM2HRB) star1.bim star1.hrb 0
+	$(BIM2HRB) star1.bim star1.hrb 47k
 
 star2.bim : star2.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:star2.bim map:star2.map star2.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:star2.bim stack:1k map:star2.map \
+		star2.obj a_nask.obj
 
 star2.hrb : star2.bim Makefile
-	$(BIM2HRB) star2.bim star2.hrb 0
+	$(BIM2HRB) star2.bim star2.hrb 47k
 
 lines.bim : lines.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:lines.bim map:lines.map lines.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:lines.bim stack:1k map:lines.map \
+		lines.obj a_nask.obj
 
 lines.hrb : lines.bim Makefile
-	$(BIM2HRB) lines.bim lines.hrb 0
+	$(BIM2HRB) lines.bim lines.hrb 48k
 
 walk.bim : walk.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:walk.bim map:walk.map walk.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:walk.bim stack:1k map:walk.map \
+		walk.obj a_nask.obj
 
 walk.hrb : walk.bim Makefile
-	$(BIM2HRB) walk.bim walk.hrb 0
+	$(BIM2HRB) walk.bim walk.hrb 48k
 
 noodle.bim : noodle.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:noodle.bim map:noodle.map noodle.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:noodle.bim stack:1k map:noodle.map \
+		noodle.obj a_nask.obj
 
 noodle.hrb : noodle.bim Makefile
-	$(BIM2HRB) noodle.bim noodle.hrb 0
+	$(BIM2HRB) noodle.bim noodle.hrb 40k
 
 beepdown.bim : beepdown.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:beepdown.bim map:beepdown.map beepdown.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:beepdown.bim stack:1k map:beepdown.map \
+		beepdown.obj a_nask.obj
 
 beepdown.hrb : beepdown.bim Makefile
-	$(BIM2HRB) beepdown.bim beepdown.hrb 0
+	$(BIM2HRB) beepdown.bim beepdown.hrb 40k
 
 beepup.bim : beepup.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:beepup.bim map:beepup.map beepup.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:beepup.bim stack:1k map:beepup.map \
+		beepup.obj a_nask.obj
 
 beepup.hrb : beepup.bim Makefile
-	$(BIM2HRB) beepup.bim beepup.hrb 0
+	$(BIM2HRB) beepup.bim beepup.hrb 40k
 
 color.bim : color.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:color.bim map:color.map color.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:color.bim stack:1k map:color.map \
+		color.obj a_nask.obj
 
 color.hrb : color.bim Makefile
-	$(BIM2HRB) color.bim color.hrb 0
+	$(BIM2HRB) color.bim color.hrb 56k
 
 color2.bim : color2.obj a_nask.obj Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:color2.bim map:color2.map color2.obj a_nask.obj
+	$(OBJ2BIM) @$(RULEFILE) out:color2.bim stack:1k map:color2.map \
+		color2.obj a_nask.obj
 
 color2.hrb : color2.bim Makefile
-	$(BIM2HRB) color2.bim color2.hrb 0
+	$(BIM2HRB) color2.bim color2.hrb 56k
 
 #haribote.sys : asmhead.bin bootpack.hrb Makefile
 #	copy /B asmhead.bin+bootpack.hrb haribote.sys
