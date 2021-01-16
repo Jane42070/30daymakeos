@@ -290,12 +290,16 @@ struct TSS32 {
  * priority 任务优先级
  * fifo 缓冲区
  * tss 任务属性
+ * term 指向的终端
+ * ds_base 数据
  * */
 struct TASK {
 	int sel, flags;
 	int level, priority;
 	struct FIFO32 fifo;
 	struct TSS32 tss;
+	struct TERM *term;
+	int ds_base;
 };
 
 struct TASKLEVEL {
