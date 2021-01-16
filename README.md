@@ -23,6 +23,7 @@
 		* [day23 图形处理相关](#day23-图形处理相关)
 		* [day24 窗口操作](#day24-窗口操作)
 		* [day25 增加命令行窗口](#day25-增加命令行窗口)
+		* [day26 为窗口移动提速](#day26-为窗口移动提速)
 	* [TODO](#todo)
 		* [终端](#终端)
 			* [vi mode](#vi-mode)
@@ -1544,6 +1545,32 @@ if (eax == 0) {
 - 多应用开启
 
 ![demo](./day25/demo.gif)
+
+### day26 为窗口移动提速
+- 提高窗口移动速度
+	- 思路：在sheet_refreshmap中，对窗口的每一个像素点判断是否为透明色然后刷新太慢，改为两个方法，刷新非透明窗口的和透明窗口的
+```c
+if (sht->col_inv == -1) {
+	// 无透明图层专用的高速版本
+	for (by = by0; by < by1; by++) {
+		vy = sht->vy0 + by;
+		for (bx = bx0; bx < bx1; bx++) {
+			vx = sht->vx0 + bx;
+			vmap[vy * ctl->xsize + vx] = sid;
+		}
+	}
+} else {
+	// 有透明图层用的普通版
+	for (by = by0; by < by1; by++) {
+		vy = sht->vy0 + by;
+		for (bx = bx0; bx < bx1; bx++) {
+			vx = sht->vx0 + bx;
+			if (buf[by * sht->bxsize + bx] != sht->col_inv) vmap[vy * ctl->xsize + vx] = sid;
+		}
+	}
+}
+```
+
 
 ## TODO
 ### 终端
