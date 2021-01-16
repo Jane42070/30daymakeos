@@ -12,7 +12,7 @@ void HariMain()
 	int win, x, y, r, g, b;
 	api_initmalloc();
 	buf = api_malloc(144 * 164);
-	win = api_openwin(buf, 144, 164, -1, "Color");
+	win = api_openwin(buf, 144, 164, -1, "color1");
 	for (y = 0; y < 128; y++) {
 		for (x = 0; x < 128; x++) {
 			r = x * 2;
