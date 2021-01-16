@@ -11,16 +11,12 @@ unsigned char rgb2pal(int r, int g, int b, int x, int y);
 void HariMain()
 {
 	char *buf;
-	int win, x, y, r, g, b;
+	int win, x, y;
 	api_initmalloc();
 	buf = api_malloc(144 * 164);
-	win = api_openwin(buf, 144, 164, -1, "Color");
+	win = api_openwin(buf, 144, 164, -1, "COLOR2");
 	for (y = 0; y < 128; y++) {
 		for (x = 0; x < 128; x++) {
-			r = x * 2;
-			g = y * 2;
-			b = 0;
-
 			buf[(x + 8) + (y + 28) * 144] = rgb2pal(x * 2, y * 2, 0, x, y);
 		}
 	}
