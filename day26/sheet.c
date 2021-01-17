@@ -15,7 +15,7 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize
 	ctl->vram  = vram;
 	ctl->xsize = xsize;
 	ctl->ysize = ysize;
-	ctl->top   = -1;	// 一个SHEET都没有
+	ctl->top   = -1;	// 一个 SHEET 都没有
 	for (i = 0; i < MAX_SHEETS; i++) {
 		ctl->sheets0[i].flags = 0;
 		ctl->sheets0[i].ctl = ctl;
@@ -42,7 +42,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 			return sht;
 		}
 	}
-	// 所有SHEET都处于正在使用状态
+	// 所有 SHEET 都处于正在使用状态
 	return 0;
 }
 
@@ -60,14 +60,14 @@ void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize, i
 // 局部画面刷新
 // V0 整个显存重新赋值实现刷新（处理量太大，系统运行卡顿）
 // V1 通过缓冲区的相对坐标位置内显存的刷新（处理量虽然减小，但是用了 if 语句，还是会所有的显存进行判断，还是没有达到理想效果）
-// V2 通过限定for语句的范围减少 if 判断
+// V2 通过限定 for 语句的范围减少 if 判断
 // V3 对照 vmap 中的内容对 vram 进行写入，减少了需要从底层一直刷新到最后一层的浪费，需要指定 h1
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1)
 {
-	int h, bx, by, vx, vy, bx0, by0, bx1, by1;
+	int h, bx, by, vx, vy, bx0, by0, bx1, by1, bx2, sid4, i, i1, *p, *q, *r;
 	unsigned char *buf, *vram = ctl->vram, *vmap = ctl->vmap, sid;
 	struct SHEET *sht;
-	// 如果要渲染的画面超出vram，则不渲染
+	// 如果要渲染的画面超出 vram，则不渲染
 	if (vx0 < 0) vx0 = 0;
 	if (vy0 < 0) vy0 = 0;
 	if (vx1 > ctl->xsize) vx1 = ctl->xsize;
@@ -86,12 +86,62 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 		if (by0 < 0) by0 = 0;
 		if (bx1 > sht->bxsize) bx1 = sht->bxsize;
 		if (by1 > sht->bysize) by1 = sht->bysize;
-		// for 语句在 bx0 ~ bx1 之间循环
-		for (by = by0; by < by1; by++) {
-			vy = sht->vy0 + by;
-			for (bx = bx0; bx < bx1; bx++) {
+		if ((sht->vx0 & 3) == 0) {
+			// 4字节型
+			i  = (bx0 + 3) / 4; // bx0 除以 4 （小数进位）
+			i1 = bx1 / 4;		// bx1 除以 4 （小数舍去）
+			i1 = i1 - i;
+			sid4 = sid | sid << 8 | sid << 16 | sid << 24;
+			for (by = by0; by < by1; by++) {
+				vy = sht->vy0 + by;
+				for (bx = bx0; bx < bx1 && (bx & 3) != 0; bx++) {// 前面被 4 除多余的部分逐个字节写入
+					vx = sht->vx0 + bx;
+					if (vmap[vy * ctl->xsize + vx] == sid) {
+						vram[vy * ctl->xsize + vx] = buf[by * sht->bxsize + bx];
+					}
+				}
 				vx = sht->vx0 + bx;
-				if (vmap[vy * ctl->xsize + vx] == sid) vram[vy * ctl->xsize + vx] = buf[by * sht->bxsize + bx];
+				p = (int *) &vmap[vy * ctl->xsize + vx];
+				q = (int *) &vram[vy * ctl->xsize + vx];
+				r = (int *) &buf[by * sht->bxsize + bx];
+				for (i = 0; i < i1; i++) {// 4 的整数部分
+					if (p[i] == sid4) {
+						q[i] = r[i];	// 估计大多数是这种情况，因此速度会变快
+					} else {
+						bx2 = bx + i * 4;
+						vx = sht->vx0 + bx2;
+						if (vmap[vy * ctl->xsize + vx + 0] == sid) {
+							vram[vy * ctl->xsize + vx + 0] = buf[by * sht->bxsize + bx2 + 0];
+						}
+						if (vmap[vy * ctl->xsize + vx + 1] == sid) {
+							vram[vy * ctl->xsize + vx + 1] = buf[by * sht->bxsize + bx2 + 1];
+						}
+						if (vmap[vy * ctl->xsize + vx + 2] == sid) {
+							vram[vy * ctl->xsize + vx + 2] = buf[by * sht->bxsize + bx2 + 2];
+						}
+						if (vmap[vy * ctl->xsize + vx + 3] == sid) {
+							vram[vy * ctl->xsize + vx + 3] = buf[by * sht->bxsize + bx2 + 3];
+						}
+					}
+				}
+				for (bx += i1 * 4; bx < bx1; bx++) {// 后面被4除多余的部分逐个字节写入
+					vx = sht->vx0 + bx;
+					if (vmap[vy * ctl->xsize + vx] == sid) {
+						vram[vy * ctl->xsize + vx] = buf[by * sht->bxsize + bx];
+					}
+				}
+			}
+		} else {
+			// 1 字节型
+			// for 语句在 bx0 ~ bx1 之间循环
+			for (by = by0; by < by1; by++) {
+				vy = sht->vy0 + by;
+				for (bx = bx0; bx < bx1; bx++) {
+					vx = sht->vx0 + bx;
+					if (vmap[vy * ctl->xsize + vx] == sid) {
+						vram[vy * ctl->xsize + vx] = buf[by * sht->bxsize + bx];
+					}
+				}
 			}
 		}
 	}
@@ -100,11 +150,11 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 // 显存地图刷新，将图层 id 作为背景写入图层
 void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0)
 {
-	int h, bx, by, vx, vy, bx0, by0, bx1, by1;
+	int h, bx, by, vx, vy, bx0, by0, bx1, by1, sid4, *p;
 	// sid == sheet id
 	unsigned char *buf, sid, *vmap= ctl->vmap;
 	struct SHEET *sht;
-	// 如果要渲染的画面超出vram，则不渲染
+	// 如果要渲染的画面超出 vram，则不渲染
 	if (vx0 < 0) vx0 = 0;
 	if (vy0 < 0) vy0 = 0;
 	if (vx1 > ctl->xsize) vx1 = ctl->xsize;
@@ -125,12 +175,26 @@ void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 		if (bx1 > sht->bxsize) bx1 = sht->bxsize;
 		if (by1 > sht->bysize) by1 = sht->bysize;
 		if (sht->col_inv == -1) {
-			// 无透明图层专用的高速版本
-			for (by = by0; by < by1; by++) {
-				vy = sht->vy0 + by;
-				for (bx = bx0; bx < bx1; bx++) {
-					vx = sht->vx0 + bx;
-					vmap[vy * ctl->xsize + vx] = sid;
+			// 无透明图层专用的高速版本*（4 字节型）
+			if ((sht->vx0 & 3) == 0 && (bx0 & 3) == 0 && (bx1 & 3) == 0) {
+				bx1 = (bx1 - bx0) / 4;// MOV 次数
+				sid4 = sid | sid << 8 | sid << 16 | sid << 24;
+				for (by = by0; by < by1; by++) {
+					vy = sht->vy0 + by;
+					vx = sht->vx0 + bx0;
+					p = (int *) &vmap[vy * ctl->xsize + vx];
+					for (bx = 0; bx < bx1; bx++) {
+						p[bx] = sid4;
+					}
+				}
+			} else {
+				// 无透明图层专用的普通版本（1 字节型）
+				for (by = by0; by < by1; by++) {
+					vy = sht->vy0 + by;
+					for (bx = bx0; bx < bx1; bx++) {
+						vx = sht->vx0 + bx;
+						vmap[vy * ctl->xsize + vx] = sid;
+					}
 				}
 			}
 		} else {
@@ -174,11 +238,11 @@ void sheet_updown(struct SHEET *sht, int height)
 	// 如果高度过高或或低，进行修正
 	if (height > ctl->top + 1) height = ctl->top + 1;
 	if (height < -1) height = -1;
-	
+
 	// 设定高度
 	sht->height = height;
 
-	// 下面主要是进行sheets[] 的重新排列
+	// 下面主要是进行 sheets[] 的重新排列
 	// 比以前低
 	if (old > height) {
 		if (height >= 0) {
