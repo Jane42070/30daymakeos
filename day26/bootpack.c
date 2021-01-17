@@ -4,6 +4,8 @@
 void keywin_off(struct SHEET *key_win);
 void keywin_on(struct SHEET *key_win);
 struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal);
+void close_termtask(struct TASK *task);
+void close_term(struct SHEET *sht);
 
 int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, keycmd_wait = -1, keycmd_time = 0, key_esc = 0;
 
@@ -12,12 +14,13 @@ void HariMain(void)
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FIFO32 fifo, keycmd;
+	*((int *) 0x0fec) = (int) &fifo;
 	int fifobuf[128], keycmd_buf[32];
 	int j, x, y, mmx = -1, mmy = -1, mmx2 = 0;
 	struct SHEET *sht = 0, *key_win;
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
-	struct SHEET *sht_back, *sht_mouse, *sht_term[2];
+	struct SHEET *sht_back, *sht_mouse;
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256];
 	struct TASK *task_a, *task;
@@ -78,8 +81,7 @@ void HariMain(void)
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
 	// sht_term
-	sht_term[0] = open_terminal(shtctl, memtotal);
-	sht_term[1] = 0;// 未打开状态
+	key_win = open_terminal(shtctl, memtotal);
 
 	// sht_mouse
 	sht_mouse = sheet_alloc(shtctl);
@@ -90,13 +92,12 @@ void HariMain(void)
 
 	// 设置在移动图层时进行局部画面刷新
 	sheet_slide(sht_back,  0,   0);
-	sheet_slide(sht_term[1],  56,  6);
+	sheet_slide(key_win, 32, 4);
 	sheet_slide(sht_mouse, mx, my);
 	// 设置叠加显示优先级
 	sheet_updown(sht_back, 0);
-	sheet_updown(sht_term[0], 1);
+	sheet_updown(key_win, 1);
 	sheet_updown(sht_mouse, 2);
-	key_win = sht_term[0];
 	keywin_on(key_win);
 
 	// 为了避免和键盘当前状态起冲突，在一开始先进行设置
@@ -129,9 +130,13 @@ void HariMain(void)
 		} else {
 			i = fifo32_get(&fifo);
 			io_sti();
-			if (key_win->flags == 0) {// 输入窗口被关闭
-				key_win = shtctl->sheets[shtctl->top - 1];
-				keywin_on(key_win);
+			if (key_win != 0 && key_win->flags == 0) {// 输入窗口被关闭
+				if (shtctl->top == 1) {
+					key_win = 0;
+				} else {
+					key_win = shtctl->sheets[shtctl->top - 1];
+					keywin_on(key_win);
+				}
 			}
 			// 处理键盘数据
 			if (256 <= i && i <= 511) {
@@ -150,18 +155,17 @@ void HariMain(void)
 						s[0] += 0x20;	// 将大写字母转化为小写字母
 					}
 				}
-				if (s[0] != 0) {// 一般字符
+				if (s[0] != 0 && key_win != 0) {// 一般字符
 					fifo32_put(&key_win->task->fifo, s[0] + 256);
 				}
 				switch (i) {
 					case 256 + 0x1c:// 回车键
-						if (key_alt != 0 && key_shift != 0 && sht_term[1] == 0) {
-							sht_term[1] = open_terminal(shtctl, memtotal);
-							sheet_slide(sht_term[1], 32, 4);
-							sheet_updown(sht_term[1], shtctl->top);
-							// 自动将焦点切换到新打开的命令行窗口
+						if (key_alt != 0 && key_shift != 0) {// shift + alt + enter
 							keywin_off(key_win);
-							key_win = sht_term[1];
+							key_win = open_terminal(shtctl, memtotal);
+							sheet_slide(key_win, 32, 4);
+							sheet_updown(key_win, shtctl->top);
+							// 自动将焦点切换到新打开的命令行窗口
 							keywin_on(key_win);
 						} else {
 							fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
@@ -171,7 +175,7 @@ void HariMain(void)
 						fifo32_put(&key_win->task->fifo, 8 + 256);
 						break;
 					case 256 + 0x0f:// TAB 键处理
-						if (key_alt != 0) {// alt + tab
+						if (key_alt != 0 && key_win != 0) {// alt + tab
 							keywin_off(key_win);
 							j = key_win->height - 1;
 							if (j == 0) j = shtctl->top - 1;
@@ -181,7 +185,7 @@ void HariMain(void)
 						} 
 						break;
 					case 256 + 0xae:
-						if (key_ctrl == 1) {// ctrl + c
+						if (key_ctrl == 1 && key_win != 0) {// ctrl + c
 							task = key_win->task;
 							if (task != 0 && task->tss.ss0 != 0) {
 								term_putstr(task->term, "\nBreak(key):\nCtrl + c");
@@ -334,6 +338,8 @@ void HariMain(void)
 						}
 					}
 				}
+			} else if (768 <= i && i <= 1023) {// 终端窗口关闭处理
+				close_term(shtctl->sheets0 + (i - 768));
 			}
 		}
 	}
@@ -361,7 +367,8 @@ struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal)
 		sheet_setbuf(sht, buf, 256, 165, -1);
 		make_window8(buf, 256, 165, "terminal", 0);
 		make_textbox8(sht, 8, 28, 240, 128, COL8_000000);
-		task->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
+		task->term_stack = memman_alloc_4k(memman, 64 * 1024);
+		task->tss.esp = task->term_stack + 64 * 1024 - 12;
 		task->tss.eip = (int) &term_task;
 		task->tss.es = 1 * 8;
 		task->tss.cs = 2 * 8;
@@ -376,4 +383,22 @@ struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal)
 		sht->flags |= 0x20;	// 有光标
 		fifo32_init(&task->fifo, 128, term_fifo, task);
 		return sht;
+}
+
+void close_termtask(struct TASK *task)
+{
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	task_sleep(task);
+	memman_free_4k(memman, task->term_stack, 64 * 1024);
+	memman_free_4k(memman, (int) task->fifo.buf, 128 * 4);
+	task->flags = 0;// 用来替代 task_free(task);
+}
+
+void close_term(struct SHEET *sht)
+{
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	struct TASK *task = sht->task;
+	memman_free_4k(memman, (int) sht->buf, 256 * 165);
+	sheet_free(sht);
+	close_termtask(task);
 }
