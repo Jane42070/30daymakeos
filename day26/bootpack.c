@@ -3,6 +3,7 @@
 
 void keywin_off(struct SHEET *key_win);
 void keywin_on(struct SHEET *key_win);
+struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal);
 
 int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, keycmd_wait = -1, keycmd_time = 0, key_esc = 0;
 
@@ -11,15 +12,15 @@ void HariMain(void)
 	struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;	// 结构体指针指向储存系统信息的地址
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	struct FIFO32 fifo, keycmd;
-	int fifobuf[128], keycmd_buf[32], *term_fifo[2];
-	int j, x, y, mmx = -1, mmy = -1;
+	int fifobuf[128], keycmd_buf[32];
+	int j, x, y, mmx = -1, mmy = -1, mmx2 = 0;
 	struct SHEET *sht = 0, *key_win;
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
 	struct SHEET *sht_back, *sht_mouse, *sht_term[2];
 	// 定义背景缓冲区、鼠标缓冲区
-	unsigned char *buf_back, buf_mouse[256], *buf_term[2];
-	struct TASK *task_a, *task_term[2], *task;
+	unsigned char *buf_back, buf_mouse[256];
+	struct TASK *task_a, *task;
 	// 键盘按键字符表
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0,   0,
@@ -45,7 +46,7 @@ void HariMain(void)
 
 	unsigned int memtotal;
 	char s[40];
-	int i, mx, my;
+	int i, mx, my, new_mx = -1, new_my = 0, new_wx = 0x7fffffff, new_wy = 0;
 
 	init_gdtidt();							// 初始化 全局段记录表，中断记录表
 	init_pic();								// 初始化 PIC
@@ -77,29 +78,8 @@ void HariMain(void)
 	init_screen(buf_back, binfo->scrnx, binfo->scrny);
 
 	// sht_term
-	for (i = 0; i < 2; i++) {
-		sht_term[i] = sheet_alloc(shtctl);
-		buf_term[i] = (unsigned char *) memman_alloc_4k(memman, 256 * 165);
-		sheet_setbuf(sht_term[i], buf_term[i], 256, 165, -1);
-		make_window8(buf_term[i], 256, 165, "terminal", 0);
-		make_textbox8(sht_term[i], 8, 28, 240, 128, COL8_000000);
-		task_term[i] = task_alloc();
-		task_term[i]->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
-		task_term[i]->tss.eip = (int) &term_task;
-		task_term[i]->tss.es = 1 * 8;
-		task_term[i]->tss.cs = 2 * 8;
-		task_term[i]->tss.ss = 1 * 8;
-		task_term[i]->tss.ds = 1 * 8;
-		task_term[i]->tss.fs = 1 * 8;
-		task_term[i]->tss.gs = 1 * 8;
-		*((int *) (task_term[i]->tss.esp + 4)) = (int) sht_term[i];
-		*((int *) (task_term[i]->tss.esp + 8)) = memtotal;
-		task_run(task_term[i], 2, 2);	// 第二等级，0.02 秒
-		sht_term[i]->task   = task_term[i];
-		sht_term[i]->flags |= 0x20;	// 有光标
-		term_fifo[i] = (int *) memman_alloc_4k(memman, 128 * 4);
-		fifo32_init(&task_term[i]->fifo, 128, term_fifo[i], task_term[i]);
-	}
+	sht_term[0] = open_terminal(shtctl, memtotal);
+	sht_term[1] = 0;// 未打开状态
 
 	// sht_mouse
 	sht_mouse = sheet_alloc(shtctl);
@@ -111,13 +91,11 @@ void HariMain(void)
 	// 设置在移动图层时进行局部画面刷新
 	sheet_slide(sht_back,  0,   0);
 	sheet_slide(sht_term[1],  56,  6);
-	sheet_slide(sht_term[0],  8,  2);
 	sheet_slide(sht_mouse, mx, my);
 	// 设置叠加显示优先级
 	sheet_updown(sht_back, 0);
-	sheet_updown(sht_term[1], 1);
-	sheet_updown(sht_term[0], 2);
-	sheet_updown(sht_mouse, 3);
+	sheet_updown(sht_term[0], 1);
+	sheet_updown(sht_mouse, 2);
 	key_win = sht_term[0];
 	keywin_on(key_win);
 
@@ -135,8 +113,19 @@ void HariMain(void)
 		io_cli();
 		// 接收中断并进入等待
 		if (fifo32_status(&fifo) == 0) {
-			task_sleep(task_a);
-			io_sti();
+			// FIFO 为空，当存在搁置的绘图操作时会立即执行
+			if (new_mx >= 0) {
+				io_sti();
+				sheet_slide(sht_mouse, new_mx, new_my);
+				new_mx = -1;
+			} else if (new_wx != 0x7fffffff) {
+				io_sti();
+				sheet_slide(sht, new_wx, new_wy);
+				new_wx = 0x7fffffff;
+			} else {
+				task_sleep(task_a);
+				io_sti();
+			}
 		} else {
 			i = fifo32_get(&fifo);
 			io_sti();
@@ -166,7 +155,17 @@ void HariMain(void)
 				}
 				switch (i) {
 					case 256 + 0x1c:// 回车键
-						fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
+						if (key_alt != 0 && key_shift != 0 && sht_term[1] == 0) {
+							sht_term[1] = open_terminal(shtctl, memtotal);
+							sheet_slide(sht_term[1], 32, 4);
+							sheet_updown(sht_term[1], shtctl->top);
+							// 自动将焦点切换到新打开的命令行窗口
+							keywin_off(key_win);
+							key_win = sht_term[1];
+							keywin_on(key_win);
+						} else {
+							fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
+						}
 						break;
 					case 256 + 0x0e:// 退格键
 						fifo32_put(&key_win->task->fifo, 8 + 256);
@@ -179,7 +178,7 @@ void HariMain(void)
 							key_win = shtctl->sheets[j];
 							keywin_on(key_win);
 							sheet_updown(shtctl->sheets[1], shtctl->top - 1);
-						}
+						} 
 						break;
 					case 256 + 0xae:
 						if (key_ctrl == 1) {// ctrl + c
@@ -273,6 +272,8 @@ void HariMain(void)
 					if (my > binfo->scrny - 1) my = binfo->scrny - 1;
 					// 描绘鼠标
 					sheet_slide(sht_mouse, mx, my);
+					new_mx = mx;
+					new_my = my;
 					if ((mdec.btn & 0x01) != 0) {
 						if (mmx < 0) {
 							// 如果处于通常模式
@@ -294,6 +295,8 @@ void HariMain(void)
 											// 进入窗口移动模式
 											mmx = mx;
 											mmy = my;
+											mmx2 = sht->vx0;
+											new_wy = sht->vy0;
 										}
 										if (sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19) {
 											// 点击 x 按钮
@@ -316,15 +319,19 @@ void HariMain(void)
 							// 计算鼠标的移动距离
 							x = mx - mmx;
 							y = my - mmy;
-							sheet_slide(sht, sht->vx0 + x, sht->vy0 + y);
+							new_wx = (mmx2 + x + 2) & ~3;
+							new_wy = new_wy + y;
 							// 更新为移动后的坐标
-							mmx = mx;
 							mmy = my;
 						}
 					} else {
 						// 没有按下左键
 						// 返回普通模式
 						mmx = -1;
+						if (new_wx != 0x7fffffff) {
+							sheet_slide(sht, new_wx, new_wy);	// 固定图层位置
+							new_wx = 0x7fffffff;
+						}
 					}
 				}
 			}
@@ -342,4 +349,31 @@ void keywin_on(struct SHEET *key_win)
 {
 	change_wtitle8(key_win, 1);
 	if ((key_win->flags & 0x20) != 0) fifo32_put(&key_win->task->fifo, 2);
+}
+
+struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal)
+{
+		struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+		struct SHEET *sht = sheet_alloc(shtctl);
+		unsigned char *buf = (unsigned char *) memman_alloc_4k(memman, 256 * 165);
+		struct TASK *task = task_alloc();
+		int *term_fifo = (int *) memman_alloc_4k(memman, 128 * 4);
+		sheet_setbuf(sht, buf, 256, 165, -1);
+		make_window8(buf, 256, 165, "terminal", 0);
+		make_textbox8(sht, 8, 28, 240, 128, COL8_000000);
+		task->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
+		task->tss.eip = (int) &term_task;
+		task->tss.es = 1 * 8;
+		task->tss.cs = 2 * 8;
+		task->tss.ss = 1 * 8;
+		task->tss.ds = 1 * 8;
+		task->tss.fs = 1 * 8;
+		task->tss.gs = 1 * 8;
+		*((int *) (task->tss.esp + 4)) = (int) sht;
+		*((int *) (task->tss.esp + 8)) = memtotal;
+		task_run(task, 2, 2);	// 第二等级，0.02 秒
+		sht->task   = task;
+		sht->flags |= 0x20;	// 有光标
+		fifo32_init(&task->fifo, 128, term_fifo, task);
+		return sht;
 }
