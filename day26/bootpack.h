@@ -350,7 +350,9 @@ void cmd_mem(struct TERM *term, unsigned int memtotal);
 void cmd_clear(struct TERM *term);
 void cmd_ls(struct TERM *term);
 void cmd_cat(struct TERM *term, int *fat, char *cmdline);
+void cmd_echo(struct TERM *term, char *cmdline);
 void cmd_uname(struct TERM *term, char *cmdline);
+void cmd_exec(struct TERM *term, char *cmdline, int memtotal);
 int cmd_app(struct TERM *term, int *fat, char *cmdline);
 void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
@@ -368,3 +370,11 @@ struct FILEINFO {
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
+
+/* bootpack.c */
+void keywin_off(struct SHEET *key_win);
+void keywin_on(struct SHEET *key_win);
+struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal);
+void close_termtask(struct TASK *task);
+void close_term(struct SHEET *sht);
+
