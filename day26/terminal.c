@@ -1,5 +1,5 @@
 #include "bootpack.h"
-extern int key_ctrl, key_alt, key_esc;
+extern int key_ctrl, key_alt, key_esc, key_shift;
 /* sys info */
 static char *kernel_release = "0.2.1";
 static char *kernel_version = "2020 1-11 01:26";
@@ -82,6 +82,11 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 						term_newline(&term);
 						term_runcmd(cmdline, &term, fat, memtotal); // 运行命令
 						term_putchar(&term, '>', 1); // 显示提示符
+						break;
+					case 'C' + 256:// 关闭终端
+						if (key_shift != 0 && key_alt != 0) {// shift + alt + c
+							cmd_exit(&term, fat);
+						}
 						break;
 					case 'l' + 256:
 						if (key_ctrl == 1 && key_alt == 0) {
@@ -174,6 +179,8 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_clear(term);
 	} else if (strcmp(cmdline, "uname") == 0) {
 		cmd_uname(term, cmdline);
+	} else if (strcmp(cmdline, "exit") == 0) {
+		cmd_exit(term, fat);
 	} else if (strncmp(cmdline, "cat", 3) == 0) {
 		cmd_cat(term, fat, cmdline);
 	} else if (strncmp(cmdline, "uname ", 6) == 0) {
@@ -185,6 +192,22 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 			term_putstr(term, ret);
 			term_newline(term);
 		}
+	}
+}
+
+void cmd_exit(struct TERM *term, int *fat)
+{
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	struct TASK *task = task_now();
+	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+	struct FIFO32 *fifo = (struct FIFO32 *) *((int *) 0x0fec);
+	timer_cancel(term->timer);
+	memman_free_4k(memman, (int) fat, 4 * 2880);
+	io_cli();
+	fifo32_put(fifo, term->sht - shtctl->sheets0 + 768);
+	io_sti();
+	for (;;) {
+		task_sleep(task);
 	}
 }
 
