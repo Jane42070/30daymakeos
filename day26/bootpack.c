@@ -1,12 +1,6 @@
 #include "bootpack.h"
 #define KEYCMD_LED 0xed
 
-void keywin_off(struct SHEET *key_win);
-void keywin_on(struct SHEET *key_win);
-struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal);
-void close_termtask(struct TASK *task);
-void close_term(struct SHEET *sht);
-
 int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, keycmd_wait = -1, keycmd_time = 0, key_esc = 0;
 
 void HariMain(void)
@@ -242,18 +236,22 @@ void HariMain(void)
 						fifo32_put(&keycmd, key_leds);
 						break;
 					// TODO: 实现功能键按下的功能
-					// case 256 + 0xe0:// 功能键
-					//     switch (fifo32_get(&fifo)) {
-					//         case 256 + 0x48:// 箭头上
-					//             break;
-					//         case 256 + 0x4b:// 箭头左
-					//             break;
-					//         case 256 + 0x4d:// 箭头右
-					//             break;
-					//         case 256 + 0x50:// 箭头下
-					//             break;
-					//     }
-					//     break;
+					case 256 + 0xe0:// 功能键
+						switch (fifo32_get(&fifo)) {
+							case 256 + 0x48:// 箭头上
+								fifo32_put(&key_win->task->fifo, 256 + 0x48);
+								break;
+							case 256 + 0x4b:// 箭头左
+								fifo32_put(&key_win->task->fifo, 256 + 0x4b);
+								break;
+							case 256 + 0x4d:// 箭头右
+								fifo32_put(&key_win->task->fifo, 256 + 0x4d);
+								break;
+							case 256 + 0x50:// 箭头下
+								fifo32_put(&key_win->task->fifo, 256 + 0x50);
+								break;
+						}
+						break;
 					case 256 + 0xfa:// 键盘成功接收到数据
 						keycmd_wait = -1;
 						break;
@@ -311,6 +309,11 @@ void HariMain(void)
 												io_cli();// 强制结束处理中，禁止切换任务
 												task->tss.eax = (int) &(task->tss.esp0);
 												task->tss.eip = (int) asm_end_app;
+												io_sti();
+											} else {// 终端
+												task = sht->task;
+												io_cli();
+												fifo32_put(&task->fifo, 4);
 												io_sti();
 											}
 										}
