@@ -299,7 +299,7 @@ struct TASK {
 	struct FIFO32 fifo;
 	struct TSS32 tss;
 	struct TERM *term;
-	int ds_base;
+	int ds_base, term_stack;
 };
 
 struct TASKLEVEL {
@@ -345,6 +345,7 @@ void term_putchar(struct TERM *term, int c, char mv);
 void term_putstr(struct TERM *term, char *s);
 void term_putnstr(struct TERM *term, char *s, int l);
 void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtotal);
+void cmd_exit(struct TERM *term, int *fat);
 void cmd_mem(struct TERM *term, unsigned int memtotal);
 void cmd_clear(struct TERM *term);
 void cmd_ls(struct TERM *term);
