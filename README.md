@@ -1587,6 +1587,23 @@ vmap[vy * ctl->xsize + vx] = sid;
 
 ![spawn_term](./day26/spawn_term.gif)
 
+- 增加更多的命令行窗口
+	- 删除 sht_term，直接向 key_win 赋值
+```c
+keywin_off(key_win);
+sheet_slide(key_win, 32, 4);
+key_win = open_terminal(shtctl, memtotal);
+sheet_updown(key_win, shtctl->top);
+// 自动将焦点切换到新打开的命令行窗口
+keywin_on(key_win);
+```
+- 关闭终端
+	- 编写 cmd_exit() 命令，在终端输入 cmd_ext() 的时候将终端的窗口和缓冲区保存在固定的内存地址
+	- 将内存释放掉，对操作系统的缓冲区发送数据，为 768 + 当前终端的窗口句柄
+	- 操作系统读取缓冲区的值，释放终端的缓冲区，如果没有任何窗口了，就将聚焦设置到哨兵 task_a 上
+	- alt + shift + c 关闭终端
+
+
 ## TODO
 ### 终端
 | 按键        | 功能         |
@@ -1603,6 +1620,7 @@ vmap[vy * ctl->xsize + vx] = sid;
 | &           | 后台运行程序 |
 | pkill       | 杀死某个进程 |
 | exec        | 执行程序     |
+| exit        | 退出终端     |
 
 #### vi mode
 1. 支持 ESC 进入 NORMAL 模式
