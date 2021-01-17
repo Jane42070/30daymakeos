@@ -37,6 +37,9 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 			io_sti();
 			i = fifo32_get(&task->fifo);
 			switch (i) {
+				case 4:// x 关闭终端
+					cmd_exit(&term, fat);
+					break;
 				case 3:// 关闭光标
 					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, 28, term.cur_x + 7, 43);
 					term.cur_c = -1;
@@ -87,6 +90,12 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 						if (key_shift != 0 && key_alt != 0) {// shift + alt + c
 							cmd_exit(&term, fat);
 						}
+						break;
+					case 'p' + 256:// 上一个命令
+						
+						break;
+					case 'k' + 256:// 下一个命令
+						
 						break;
 					case 'l' + 256:
 						if (key_ctrl == 1 && key_alt == 0) {
@@ -183,6 +192,10 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_exit(term, fat);
 	} else if (strncmp(cmdline, "cat", 3) == 0) {
 		cmd_cat(term, fat, cmdline);
+	} else if (strncmp(cmdline, "echo ", 5) == 0) {
+		cmd_echo(term, cmdline + 5);
+	} else if (strncmp(cmdline, "exec ", 5) == 0) {
+		cmd_exec(term, cmdline, memtotal);
 	} else if (strncmp(cmdline, "uname ", 6) == 0) {
 		cmd_uname(term, cmdline);
 	} else if (cmdline[0] != 0) {
@@ -275,6 +288,15 @@ void cmd_cat(struct TERM *term, int *fat, char *cmdline)
 	}
 }
 
+// echo 命令
+void cmd_echo(struct TERM *term, char *cmdline)
+{
+	char s[30] = {0};
+	sprintf(s, "%s", cmdline);
+	term_putstr(term, s);
+	term_newline(term);
+}
+
 // uname 命令
 // TODO: 做成应用而不是命令
 void cmd_uname(struct TERM *term, char *cmdline)
@@ -320,6 +342,21 @@ void cmd_uname(struct TERM *term, char *cmdline)
 		term_putstr(term, kernel_name);
 		term_newline(term);
 	}
+}
+
+void cmd_exec(struct TERM *term, char *cmdline, int memtotal)
+{
+	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+	struct SHEET *sht = open_terminal(shtctl, memtotal);
+	struct FIFO32 *fifo = &sht->task->fifo;
+	int i;
+	sheet_slide(sht, 32, 4);
+	sheet_updown(sht, shtctl->top);
+	// 将命令输入的字符串复制到新的命令行中
+	for (i = 5; cmdline[i] != 0; i++) {
+		fifo32_put(fifo, cmdline[i] + 256);
+	}
+	fifo32_put(fifo, 10 + 256);
 }
 
 // 启动应用
