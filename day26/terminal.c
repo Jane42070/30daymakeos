@@ -41,7 +41,7 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					cmd_exit(&term, fat);
 					break;
 				case 3:// 关闭光标
-					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, 28, term.cur_x + 7, 43);
+					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 					term.cur_c = -1;
 					break;
 				case 2:// 开启光标
