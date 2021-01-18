@@ -1606,6 +1606,7 @@ keywin_on(key_win);
 
 - exec 执行应用
 ![exec](./day26/exec.gif)
+- 修复了中断切换时白色光标停留在未激活终端的现象
 
 ## TODO
 ### 终端
