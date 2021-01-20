@@ -358,6 +358,7 @@ void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col)
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 int *inthandler0d(int *esp);
 int *inthandler0c(int *esp);
+int strcpy0(char *dest, char *s);
 
 /* file.c */
 // 文件信息
@@ -377,4 +378,3 @@ void keywin_on(struct SHEET *key_win);
 struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal);
 void close_termtask(struct TASK *task);
 void close_term(struct SHEET *sht);
-
