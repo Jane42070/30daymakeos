@@ -10,7 +10,7 @@ static char *operating_sys  = "CLAY/Spark";
 void term_task(struct SHEET *sheet, unsigned int memtotal)
 {
 	struct TASK *task = task_now();
-	// char history[128] = {0};
+	char history[30] = {0};// 上一次命令
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	int i, *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
 	struct TERM term;
@@ -77,7 +77,8 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 							term.cur_x -= 8;
 						}
 						break;
-					case 10 + 256:// 回车键
+					case 0x1c + 256:// 回车键
+						strcpy0(history, cmdline);
 					// case 12 + 256:
 						// 将光标用空格擦除后换行
 						term_putchar(&term, ' ', 0);
@@ -91,11 +92,11 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 							cmd_exit(&term, fat);
 						}
 						break;
-					case 'p' + 256:// 上一个命令
-						
-						break;
-					case 'k' + 256:// 下一个命令
-						
+					case 256 + 0x48:// 箭头上
+						if (term.cur_x == 16) {// 如果没有字符
+							strcpy(cmdline, history);
+							term_putstr(&term, cmdline);
+						}
 						break;
 					case 'l' + 256:
 						if (key_ctrl == 1 && key_alt == 0) {
@@ -617,4 +618,22 @@ int *inthandler0c(int *esp)
 	sprintf(s, "\nEIP = %08X", esp[11]);
 	term_putstr(term, s);
 	return &(task->tss.esp0);// 强制结束程序
+}
+
+/* Copy s to dest
+ * write 0 at the end of dest
+ * return s length
+ * */
+int strcpy0(char *dest, char *s)
+{
+	char *p = s;
+	char *q = dest;
+	int len = 0;
+	for(;*p != 0;len++) {
+		*q = *p;
+		q++;
+		p++;
+	}
+	*q = 0;
+	return len;
 }
