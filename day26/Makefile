@@ -259,6 +259,7 @@ spark.img : ipl10.bin haribote.sys Makefile \
 
 img :
 	$(MAKE) spark.img
+	$(MAKE) clean
 
 # run :
 #     $(MAKE) img
