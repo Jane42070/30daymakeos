@@ -2,6 +2,7 @@
 #define KEYCMD_LED 0xed
 
 int key_to = 0, key_shift = 0, key_ctrl = 0, key_alt = 0, keycmd_wait = -1, keycmd_time = 0, key_esc = 0;
+extern struct TASKCTL *taskctl;
 
 void HariMain(void)
 {
@@ -343,6 +344,8 @@ void HariMain(void)
 				}
 			} else if (768 <= i && i <= 1023) {// 终端窗口关闭处理
 				close_term(shtctl->sheets0 + (i - 768));
+			} else if (1024 <= i && i <= 2023) {
+				close_termtask(taskctl->tasks0 + (i - 1024));
 			}
 		}
 	}
@@ -360,31 +363,37 @@ void keywin_on(struct SHEET *key_win)
 	if ((key_win->flags & 0x20) != 0) fifo32_put(&key_win->task->fifo, 2);
 }
 
+struct TASK *open_termtask(struct SHEET *sht, unsigned int memtotal)
+{
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
+	struct TASK *task = task_alloc();
+	int *term_fifo = (int *) memman_alloc_4k(memman, 128 * 4);
+	task->term_stack = memman_alloc_4k(memman, 64 * 1024);
+	task->tss.esp = task->term_stack + 64 * 1024 - 12;
+	task->tss.eip = (int) *term_task;
+	task->tss.es = 1 * 8;
+	task->tss.cs = 2 * 8;
+	task->tss.ss = 1 * 8;
+	task->tss.ds = 1 * 8;
+	task->tss.fs = 1 * 8;
+	task->tss.gs = 1 * 8;
+	*((int *) (task->tss.esp + 4)) = (int) sht;
+	*((int *) (task->tss.esp + 8)) = memtotal;
+	task_run(task, 2, 2);
+	fifo32_init(&task->fifo, 128 * 4, term_fifo, task);
+	return task;
+}
+
 struct SHEET *open_terminal(struct SHTCTL *shtctl, unsigned int memtotal)
 {
 		struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 		struct SHEET *sht = sheet_alloc(shtctl);
 		unsigned char *buf = (unsigned char *) memman_alloc_4k(memman, 256 * 165);
-		struct TASK *task = task_alloc();
-		int *term_fifo = (int *) memman_alloc_4k(memman, 128 * 4);
 		sheet_setbuf(sht, buf, 256, 165, -1);
 		make_window8(buf, 256, 165, "terminal", 0);
 		make_textbox8(sht, 8, 28, 240, 128, COL8_000000);
-		task->term_stack = memman_alloc_4k(memman, 64 * 1024);
-		task->tss.esp = task->term_stack + 64 * 1024 - 12;
-		task->tss.eip = (int) &term_task;
-		task->tss.es = 1 * 8;
-		task->tss.cs = 2 * 8;
-		task->tss.ss = 1 * 8;
-		task->tss.ds = 1 * 8;
-		task->tss.fs = 1 * 8;
-		task->tss.gs = 1 * 8;
-		*((int *) (task->tss.esp + 4)) = (int) sht;
-		*((int *) (task->tss.esp + 8)) = memtotal;
-		task_run(task, 2, 2);	// 第二等级，0.02 秒
-		sht->task   = task;
+		sht->task   = open_termtask(sht, memtotal);
 		sht->flags |= 0x20;	// 有光标
-		fifo32_init(&task->fifo, 128, term_fifo, task);
 		return sht;
 }
 
