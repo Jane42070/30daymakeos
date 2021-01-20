@@ -103,6 +103,7 @@ void init_gdtidt(void);
 #define ADR_BOTPAK		0x00280000
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
+#define AR_LDT			0x0082
 #define AR_TSS32		0x0089
 #define AR_CODE32_ER	0x409a
 // 中断处理属性
@@ -292,12 +293,14 @@ struct TSS32 {
  * tss 任务属性
  * term 指向的终端
  * ds_base 数据
+ * ldt 段属性编号 
  * */
 struct TASK {
 	int sel, flags;
 	int level, priority;
 	struct FIFO32 fifo;
 	struct TSS32 tss;
+	struct SEGMENT_DESCRIPTOR ldt[2];
 	struct TERM *term;
 	int ds_base, term_stack;
 };
