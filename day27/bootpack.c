@@ -15,7 +15,7 @@ void HariMain(void)
 	struct SHEET *sht = 0, *key_win;
 	struct SHTCTL *shtctl;
 	// 图层背景，鼠标
-	struct SHEET *sht_back, *sht_mouse;
+	struct SHEET *sht_back, *sht_mouse, *sht2;
 	// 定义背景缓冲区、鼠标缓冲区
 	unsigned char *buf_back, buf_mouse[256];
 	struct TASK *task_a, *task;
@@ -188,6 +188,7 @@ void HariMain(void)
 								task->tss.eax = (int) &(task->tss.esp0);
 								task->tss.eip = (int) asm_end_app;
 								io_sti();
+								task_run(task, -1, 0);// 为了确实执行结束处理，如果处于休眠状态则唤醒
 							}
 						}
 						break;
@@ -311,8 +312,13 @@ void HariMain(void)
 												task->tss.eax = (int) &(task->tss.esp0);
 												task->tss.eip = (int) asm_end_app;
 												io_sti();
+												task_run(task, -1, 0);
 											} else {// 终端
 												task = sht->task;
+												sheet_updown(sht, -1);// 隐藏图层
+												keywin_off(key_win);
+												key_win = shtctl->sheets[shtctl->top - 1];
+												keywin_on(key_win);
 												io_cli();
 												fifo32_put(&task->fifo, 4);
 												io_sti();
@@ -346,6 +352,10 @@ void HariMain(void)
 				close_term(shtctl->sheets0 + (i - 768));
 			} else if (1024 <= i && i <= 2023) {
 				close_termtask(taskctl->tasks0 + (i - 1024));
+			} else if (2024 <= i && i <= 2279) {// 只关闭终端窗口
+				sht2 = shtctl->sheets0 + (i - 2024);
+				memman_free_4k(memman, (int) sht2->buf, 256 * 165);
+				sheet_free(sht2);
 			}
 		}
 	}
