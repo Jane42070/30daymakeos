@@ -22,11 +22,12 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	term.cur_c = -1;
 	task->term = &term;
 
-	if (sheet != 0) {
+	if (term.sht != 0) {
 		term.timer = timer_alloc();
 		timer_init(term.timer, &task->fifo, 1);
 		timer_settime(term.timer, 50);
 	}
+
 	file_readfat(fat, (unsigned char *) (ADR_DISKIMG + 0x000200));
 	// 显示提示符
 	term_putchar(&term, '>', 1);
@@ -44,8 +45,8 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					cmd_exit(&term, fat);
 					break;
 				case 3:// 关闭光标
-					if (sheet != 0) {
-						boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+					if (term.sht != 0) {
+						boxfill8(term.sht->buf, term.sht->bxsize, COL8_000000, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 						term.cur_c = -1;
 					}
 					break;
@@ -54,28 +55,28 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					break;
 				case 1:// 光标显示
 					timer_init(term.timer, &task->fifo, 0);
-					if (sheet != 0) {
+					if (term.sht != 0) {
 						if (term.cur_c >= 0) {
 							term.cur_c = COL8_FFFFFF;
-							boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+							boxfill8(term.sht->buf, term.sht->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 						}
 						// 刷新光标
 						timer_settime(term.timer, 50);
-						sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
+						sheet_refresh(term.sht, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					
 					}
 					break;
 				case 0:// 光标隐藏
 					timer_init(term.timer, &task->fifo, 1);
-					if (sheet != 0) {
+					if (term.sht != 0) {
 						if (term.cur_c >= 0) {
 							term.cur_c = COL8_000000;
-							boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+							boxfill8(term.sht->buf, term.sht->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
 						}
 					}
 					// 刷新光标
 					timer_settime(term.timer, 50);
-					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
+					sheet_refresh(term.sht, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
 			}
 			if (256 <= i && i <= 511) {	// 通过任务 A 接收键盘数据
@@ -462,6 +463,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	int ds_base = task->ds_base;
 	struct TERM *term     = task->term;
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+	struct FIFO32 *sys_info = (struct FIFO32 *) *((int *) 0x0fec);
 	struct SHEET *sht;
 	int *reg = &eax + 1, i;	// eax 后面的地址
 	/* 强行改写通过 PUSHAD 保存的值
@@ -555,6 +557,12 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 						break;
 					case 3:// 光标隐藏
 						term->cur_c = -1;
+						break;
+					case 4:// 只关闭终端窗口
+						timer_cancel(term->timer);
+						io_cli();
+						fifo32_put(sys_info, term->sht - shtctl->sheets0 + 2024);	// 2024 ~ 2279
+						io_sti();
 						break;
 					default:
 						if (i >= 256) {// 如果是键盘输入
