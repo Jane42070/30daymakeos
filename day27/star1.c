@@ -1,9 +1,4 @@
-int api_openwin(char *buf, int xsiz, int ysiz, int col_inv, char *title);
-void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
-void api_initmalloc();
-char *api_malloc(int size);
-void api_point(int win, int x, int y, int col);
-void api_end();
+#include "apilib.h"
 
 int rand(void);// 产生 0~32767 之间的随机数
 

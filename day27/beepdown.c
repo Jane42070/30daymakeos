@@ -1,9 +1,4 @@
-void api_end();
-int api_getkey(int mode);
-int api_alloctimer();
-void api_inittimer(int timer, int data);
-void api_settimer(int timer, int time);
-void api_beep(int tone);
+#include "apilib.h"
 
 void HariMain()
 {

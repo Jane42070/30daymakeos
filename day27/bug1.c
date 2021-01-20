@@ -1,5 +1,4 @@
-void api_putchar();
-void api_end();
+#include "apilib.h"
 
 void HariMain()
 {

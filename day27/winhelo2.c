@@ -1,8 +1,4 @@
-int api_openwin(char *buf, int sxiz, int yxiz, int col_inv, char *title);
-void api_putstrwin(int win, int x, int y, int col, int len, char *str);
-void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
-int api_getkey(int mode);
-void api_end();
+#include "apilib.h"
 
 char buf[150 * 50];
 
