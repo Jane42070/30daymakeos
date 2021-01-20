@@ -162,7 +162,7 @@ void HariMain(void)
 							// 自动将焦点切换到新打开的命令行窗口
 							keywin_on(key_win);
 						} else {
-							fifo32_put(&key_win->task->fifo, 10 + 256);	// 发送命令到终端
+							fifo32_put(&key_win->task->fifo, 0x1c + 256);	// 发送命令到终端
 						}
 						break;
 					case 256 + 0x0e:// 退格键
@@ -176,7 +176,7 @@ void HariMain(void)
 							key_win = shtctl->sheets[j];
 							keywin_on(key_win);
 							sheet_updown(shtctl->sheets[1], shtctl->top - 1);
-						} 
+						}
 						break;
 					case 256 + 0xae:
 						if (key_ctrl == 1 && key_win != 0) {// ctrl + c
