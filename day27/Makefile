@@ -49,23 +49,12 @@ bootpack.hrb : bootpack.bim Makefile
 	$(BIM2HRB) bootpack.bim bootpack.hrb 0
 
 # 汇编应用程序
-hello.hrb : hello.asm Makefile
-	$(NASK) hello.asm hello.hrb hello.lst
 
-hello2.hrb : hello2.asm Makefile
-	$(NASK) hello2.asm hello2.hrb hello2.lst
+crack7.bim : crack7.obj Makefile
+	$(OBJ2BIM) @$(RULEFILE) out:crack7.bim stack:1k map:crack7.map crack7.obj
 
-crack2.hrb : crack2.asm Makefile
-	$(NASK) crack2.asm crack2.hrb crack2.lst
-
-crack3.hrb : crack3.asm Makefile
-	$(NASK) crack3.asm crack3.hrb crack3.lst
-
-crack4.hrb : crack4.asm Makefile
-	$(NASK) crack4.asm crack4.hrb crack4.lst
-
-crack5.hrb : crack5.asm Makefile
-	$(NASK) crack5.asm crack5.hrb crack5.lst
+crack7.hrb : crack7.bim Makefile
+	$(BIM2HRB) crack7.bim crack7.hrb 0k
 
 hello5.bim : hello5.obj Makefile
 	$(OBJ2BIM) @$(RULEFILE) out:hello5.bim stack:1k map:hello5.map hello5.obj
@@ -204,8 +193,8 @@ haribote.sys : asmhead.bin bootpack.hrb Makefile
 	cat asmhead.bin bootpack.hrb > haribote.sys
 
 spark.img : ipl10.bin haribote.sys Makefile \
-	hello.hrb hello2.hrb hello3.hrb hello4.hrb hello5.hrb a.hrb \
-	crack1.hrb crack2.hrb crack3.hrb crack4.hrb crack5.hrb \
+	hello3.hrb hello4.hrb hello5.hrb a.hrb \
+	crack7.hrb \
 	bug1.hrb bug2.hrb bug3.hrb \
 	winhelo.hrb winhelo2.hrb winhelo3.hrb \
 	star1.hrb star2.hrb \
@@ -217,17 +206,11 @@ spark.img : ipl10.bin haribote.sys Makefile \
 		copy from:haribote.sys to:@: \
 		copy from:ipl10.asm to:@: \
 		copy from:make.bat to:@: \
-		copy from:hello.hrb to:@: \
-		copy from:hello2.hrb to:@: \
 		copy from:hello3.hrb to:@: \
 		copy from:hello4.hrb to:@: \
 		copy from:hello5.hrb to:@: \
 		copy from:a.hrb to:@: \
-		copy from:crack1.hrb to:@: \
-		copy from:crack2.hrb to:@: \
-		copy from:crack3.hrb to:@: \
-		copy from:crack4.hrb to:@: \
-		copy from:crack5.hrb to:@: \
+		copy from:crack7.hrb to:@: \
 		copy from:bug1.hrb to:@: \
 		copy from:bug2.hrb to:@: \
 		copy from:bug3.hrb to:@: \
