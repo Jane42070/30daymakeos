@@ -1,5 +1,6 @@
 #include "bootpack.h"
 extern int key_ctrl, key_alt, key_esc, key_shift;
+extern struct TASKCTL *taskctl;
 /* sys info */
 static char *kernel_release = "0.2.1";
 static char *kernel_version = "2020 1-11 01:26";
@@ -21,9 +22,11 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	term.cur_c = -1;
 	task->term = &term;
 
-	term.timer = timer_alloc();
-	timer_init(term.timer, &task->fifo, 1);
-	timer_settime(term.timer, 50);
+	if (sheet != 0) {
+		term.timer = timer_alloc();
+		timer_init(term.timer, &task->fifo, 1);
+		timer_settime(term.timer, 50);
+	}
 	file_readfat(fat, (unsigned char *) (ADR_DISKIMG + 0x000200));
 	// 显示提示符
 	term_putchar(&term, '>', 1);
@@ -41,27 +44,34 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 					cmd_exit(&term, fat);
 					break;
 				case 3:// 关闭光标
-					boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
-					term.cur_c = -1;
+					if (sheet != 0) {
+						boxfill8(sheet->buf, sheet->bxsize, COL8_000000, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+						term.cur_c = -1;
+					}
 					break;
 				case 2:// 开启光标
 					term.cur_c = COL8_FFFFFF;
 					break;
 				case 1:// 光标显示
 					timer_init(term.timer, &task->fifo, 0);
-					if (term.cur_c >= 0) {
-						term.cur_c = COL8_FFFFFF;
-						boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+					if (sheet != 0) {
+						if (term.cur_c >= 0) {
+							term.cur_c = COL8_FFFFFF;
+							boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+						}
+						// 刷新光标
+						timer_settime(term.timer, 50);
+						sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
+					
 					}
-					// 刷新光标
-					timer_settime(term.timer, 50);
-					sheet_refresh(sheet, term.cur_x, term.cur_y, term.cur_x + 8, term.cur_y + 16);
 					break;
 				case 0:// 光标隐藏
 					timer_init(term.timer, &task->fifo, 1);
-					if (term.cur_c >= 0) {
-						term.cur_c = COL8_000000;
-						boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+					if (sheet != 0) {
+						if (term.cur_c >= 0) {
+							term.cur_c = COL8_000000;
+							boxfill8(sheet->buf, sheet->bxsize, term.cur_c, term.cur_x, term.cur_y, term.cur_x + 7, term.cur_y + 15);
+						}
 					}
 					// 刷新光标
 					timer_settime(term.timer, 50);
@@ -79,12 +89,12 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 						break;
 					case 0x1c + 256:// 回车键
 						strcpy0(history, cmdline);
-					// case 12 + 256:
 						// 将光标用空格擦除后换行
 						term_putchar(&term, ' ', 0);
 						cmdline[term.cur_x / 8 - 2] = 0;
 						term_newline(&term);
 						term_runcmd(cmdline, &term, fat, memtotal); // 运行命令
+						if (sheet == 0) cmd_exit(&term, fat);
 						term_putchar(&term, '>', 1); // 显示提示符
 						break;
 					case 'C' + 256:// 关闭终端
@@ -122,17 +132,19 @@ void term_newline(struct TERM *term)
 	if (term->cur_y < 28 + 112) {
 		term->cur_y += 16;// 到下一行
 	} else {// 滚动
-		for (y = 28; y < 28 + 112; y++) {
-			for (x = 8; x < 8 + 240; x++) {
-				sht->buf[x + y * sht->bxsize] = sht->buf[x + (y + 16) * sht->bxsize];
+		if (sht != 0) {
+			for (y = 28; y < 28 + 112; y++) {
+				for (x = 8; x < 8 + 240; x++) {
+					sht->buf[x + y * sht->bxsize] = sht->buf[x + (y + 16) * sht->bxsize];
+				}
 			}
-		}
-		for (y = 28 + 112; y < 28 + 128; y++) {
-			for (x = 8; x < 8 + 240; x++) {
-				sht->buf[x + y * sht->bxsize] = COL8_000000;
+			for (y = 28 + 112; y < 28 + 128; y++) {
+				for (x = 8; x < 8 + 240; x++) {
+					sht->buf[x + y * sht->bxsize] = COL8_000000;
+				}
 			}
+			sheet_refresh(sht, 8, 28, 8 + 240, 28 + 128);
 		}
-		sheet_refresh(sht, 8, 28, 8 + 240, 28 + 128);
 	}
 	term->cur_x = 8;
 }
@@ -144,7 +156,9 @@ void term_putchar(struct TERM *term, int c, char mv)
 	switch (s[0]) {
 		case 0x09:// 制表符
 			for (;;) {
-				putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, term->cur_c, COL8_000000, " ");
+				if (term->sht != 0) {
+					putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, term->cur_c, COL8_000000, " ");
+				}
 				term->cur_x += 8;
 				if (term->cur_x == 8 + 240) term_newline(term);
 				if ((term->cur_x - 8) & 0x1f) break;
@@ -156,7 +170,9 @@ void term_putchar(struct TERM *term, int c, char mv)
 		case 0x0d:// 回车，先不做任何操作
 			break;
 		default:// 一般字符
-			putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, COL8_FFFFFF, COL8_000000, s);
+			if (term->sht != 0) {
+				putfonts8_str_sht(term->sht, term->cur_x, term->cur_y, COL8_FFFFFF, COL8_000000, s);
+			}
 			if (mv != 0) {// mv 为 0 时光标不后移
 				term->cur_x += 8;
 				if (term->cur_x == 8 + 240) term_newline(term);
@@ -195,6 +211,8 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_cat(term, fat, cmdline);
 	} else if (strncmp(cmdline, "echo ", 5) == 0) {
 		cmd_echo(term, cmdline + 5);
+	} else if (strncmp(cmdline, "start ", 6) == 0) {
+		cmd_start(term, cmdline, memtotal);
 	} else if (strncmp(cmdline, "exec ", 5) == 0) {
 		cmd_exec(term, cmdline, memtotal);
 	} else if (strncmp(cmdline, "uname ", 6) == 0) {
@@ -218,7 +236,11 @@ void cmd_exit(struct TERM *term, int *fat)
 	timer_cancel(term->timer);
 	memman_free_4k(memman, (int) fat, 4 * 2880);
 	io_cli();
-	fifo32_put(fifo, term->sht - shtctl->sheets0 + 768);
+	if (term->sht != 0) {
+		fifo32_put(fifo, term->sht - shtctl->sheets0 + 768);
+	} else {
+		fifo32_put(fifo, task - taskctl->tasks0 + 1024);
+	}
 	io_sti();
 	for (;;) {
 		task_sleep(task);
@@ -345,7 +367,7 @@ void cmd_uname(struct TERM *term, char *cmdline)
 	}
 }
 
-void cmd_exec(struct TERM *term, char *cmdline, int memtotal)
+void cmd_start(struct TERM *term, char *cmdline, int memtotal)
 {
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 	struct SHEET *sht = open_terminal(shtctl, memtotal);
@@ -354,10 +376,22 @@ void cmd_exec(struct TERM *term, char *cmdline, int memtotal)
 	sheet_slide(sht, 32, 4);
 	sheet_updown(sht, shtctl->top);
 	// 将命令输入的字符串复制到新的命令行中
-	for (i = 5; cmdline[i] != 0; i++) {
+	for (i = 6; cmdline[i] != 0; i++) {
 		fifo32_put(fifo, cmdline[i] + 256);
 	}
-	fifo32_put(fifo, 10 + 256);
+	fifo32_put(fifo, 0x1c + 256);
+}
+
+void cmd_exec(struct TERM *term, char *cmdline, int memtotal)
+{
+	struct TASK *task = open_termtask(0, memtotal);
+	struct FIFO32 *fifo = &task->fifo;
+	int i;
+	// 将命令行输入的字符串复制到新的命令行窗口中
+	for (i = 5; cmdline[i] != 0; ++i) {
+		fifo32_put(fifo, cmdline[i] + 256);
+	}
+	fifo32_put(fifo, 0x1c + 256);
 }
 
 // 启动应用
