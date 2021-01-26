@@ -1,0 +1,82 @@
+TOOLPATH = ../../tolset/z_tools/
+INCPATH  = ../../tolset/z_tools/haribote/
+APILIBPATH   = ../apilib/
+HARIBOTEPATH = ../spark/
+
+MAKE     = $(TOOLPATH)make.exe -r
+NASK     = $(TOOLPATH)nask.exe
+CC1      = $(TOOLPATH)cc1.exe -I$(INCPATH) -Os -Wall -quiet
+GAS2NASK = $(TOOLPATH)gas2nask.exe -a
+OBJ2BIM  = $(TOOLPATH)obj2bim.exe
+MAKEFONT = $(TOOLPATH)makefont.exe
+BIN2OBJ  = $(TOOLPATH)bin2obj.exe
+BIM2HRB  = $(TOOLPATH)bim2hrb.exe
+RULEFILE = ../haribote.rul
+EDIMG    = $(TOOLPATH)edimg.exe
+IMGTOL   = $(TOOLPATH)imgtol.com
+GOLIB    = $(TOOLPATH)golib00.exe
+COPY     = cp
+DEL      = rm
+#默认动作
+
+default :
+	$(MAKE) $(APP).hrb
+
+#文件生成规则
+
+$(APP).bim : $(APP).obj $(APILIBPATH)apilib.lib Makefile ../app_make.txt
+	$(OBJ2BIM) @$(RULEFILE) out:$(APP).bim map:$(APP).map stack:$(STACK) \
+		$(APP).obj $(APILIBPATH)apilib.lib
+
+$(APP).hrb : $(APP).bim Makefile ../app_make.txt
+	$(BIM2HRB) $(APP).bim $(APP).hrb $(MALLOC)
+
+spark.img : ../spark/ipl10.bin ../spark/haribote.sys $(APP).hrb \
+		Makefile ../app_make.txt
+	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
+		wbinimg src:../spark/ipl10.bin len:512 from:0 to:0 \
+		copy from:../spark/haribote.sys to:@: \
+		copy from:$(APP).hrb to:@: \
+		imgout:spark.img
+
+#一般规则
+
+%.gas : %.c ../apilib.h Makefile ../app_make.txt
+	$(CC1) -o $*.gas $*.c
+
+%.asm : %.gas Makefile ../app_make.txt
+	$(GAS2NASK) $*.gas $*.asm
+
+%.obj : %.asm Makefile ../app_make.txt
+	$(NASK) $*.asm $*.obj $*.lst
+
+#命令
+
+#run :
+#	$(MAKE) spark.img
+#	$(COPY) spark.img ..\..\z_tools\qemu\fdimage0.bin
+#	$(MAKE) -C ../../z_tools/qemu
+run :
+	../../tolset/z_tools/make.exe img
+	qemu-system-x86_64 -m 32 -fda spark.img
+
+full :
+	$(MAKE) -C $(APILIBPATH)
+	$(MAKE) $(APP).hrb
+
+run_full :
+	$(MAKE) -C $(APILIBPATH)
+	$(MAKE) -C ../spark
+	$(MAKE) run
+
+clean :
+	-$(DEL) *.lst
+	-$(DEL) *.obj
+	-$(DEL) *.map
+	-$(DEL) *.bim
+	-$(DEL) spark.img
+
+src_only :
+	$(MAKE) clean
+	-$(DEL) $(APP).hrb
+
