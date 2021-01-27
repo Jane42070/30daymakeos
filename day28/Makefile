@@ -1,7 +1,3 @@
-OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj dsctbl.obj \
-				init.obj fifo.obj keyboard.obj mouse.obj memory.obj sheet.obj \
-				timer.obj mtask.obj terminal.obj file.obj window.obj
-
 TOOLPATH = ../tolset/z_tools/
 INCPATH  = ../tolset/z_tools/haribote/
 
@@ -31,7 +27,8 @@ spark.img : spark/ipl10.bin spark/haribote.sys Makefile \
 		winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 		star1/star1.hrb star2/star2.hrb \
 		lines/lines.hrb walk/walk.hrb noodle/noodle.hrb \
-		beepdown/beepdown.hrb color/color.hrb color2/color2.hrb
+		beepdown/beepdown.hrb color/color.hrb color2/color2.hrb \
+		sosu/sosu.hrb sosu2/sosu2.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:spark/ipl10.bin len:512 from:0 to:0 \
 		copy from:spark/haribote.sys to:@: \
@@ -52,6 +49,8 @@ spark.img : spark/ipl10.bin spark/haribote.sys Makefile \
 		copy from:beepdown/beepdown.hrb to:@: \
 		copy from:color/color.hrb to:@: \
 		copy from:color2/color2.hrb to:@: \
+		copy from:sosu/sosu.hrb to:@: \
+		copy from:sosu2/sosu2.hrb to:@: \
 		imgout:spark.img
 
 # 其他指令
@@ -68,19 +67,12 @@ install :
 	$(MAKE) img
 	$(IMGTOL) w a: spark.img
 
-clean :
-	-$(DEL) *.bin
-	-$(DEL) *.lst
-	-$(DEL) *.obj
-	-$(DEL) *.map
-	-$(DEL) *.bim
-	-$(DEL) *.hrb
-	-$(DEL) *.sys
-
 full :
 	$(MAKE) -C spark
 	$(MAKE) -C apilib
 	$(MAKE) -C a
+	$(MAKE) -C sosu
+	$(MAKE) -C sosu2
 	$(MAKE) -C hello3
 	$(MAKE) -C hello4
 	$(MAKE) -C hello5
@@ -106,7 +98,7 @@ run_os :
 	$(MAKE) run
 
 clean :
-#不执行任何操作
+	$(MAKE) clean_full
 
 src_only :
 	$(MAKE) clean
@@ -130,6 +122,8 @@ clean_full :
 	$(MAKE) -C beepdown		clean
 	$(MAKE) -C color		clean
 	$(MAKE) -C color2		clean
+	$(MAKE) -C sosu			clean
+	$(MAKE) -C sosu2		clean
 
 src_only_full :
 	$(MAKE) -C spark		src_only
@@ -149,6 +143,8 @@ src_only_full :
 	$(MAKE) -C beepdown		src_only
 	$(MAKE) -C color		src_only
 	$(MAKE) -C color2		src_only
+	$(MAKE) -C sosu
+	$(MAKE) -C sosu2
 	-$(DEL) spark.img
 
 refresh :
