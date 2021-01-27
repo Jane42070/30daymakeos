@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api007.nas"]
+[FILE "api007.asm"]
 
 		GLOBAL	_api_boxfilwin
 

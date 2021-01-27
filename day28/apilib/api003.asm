@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api003.nas"]
+[FILE "api003.asm"]
 
 		GLOBAL	_api_putnstr
 

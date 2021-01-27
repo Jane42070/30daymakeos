@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api014.nas"]
+[FILE "api014.asm"]
 
 		GLOBAL	_api_closewin
 

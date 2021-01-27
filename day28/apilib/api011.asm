@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api011.nas"]
+[FILE "api011.asm"]
 
 		GLOBAL	_api_point
 

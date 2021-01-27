@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api010.nas"]
+[FILE "api010.asm"]
 
 		GLOBAL	_api_free
 

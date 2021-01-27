@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api013.nas"]
+[FILE "api013.asm"]
 
 		GLOBAL	_api_linewin
 

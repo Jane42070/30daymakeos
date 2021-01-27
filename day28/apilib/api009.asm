@@ -1,7 +1,7 @@
 [FORMAT "WCOFF"]
 [INSTRSET "i486p"]
 [BITS 32]
-[FILE "api009.nas"]
+[FILE "api009.asm"]
 
 		GLOBAL	_api_malloc
 
