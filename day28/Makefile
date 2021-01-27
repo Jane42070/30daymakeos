@@ -28,7 +28,8 @@ spark.img : spark/ipl10.bin spark/haribote.sys Makefile \
 		star1/star1.hrb star2/star2.hrb \
 		lines/lines.hrb walk/walk.hrb noodle/noodle.hrb \
 		beepdown/beepdown.hrb color/color.hrb color2/color2.hrb \
-		sosu/sosu.hrb sosu2/sosu2.hrb
+		sosu/sosu.hrb sosu2/sosu2.hrb \
+		cat/cat.hrb
 	$(EDIMG)   imgin:../tolset/z_tools/fdimg0at.tek \
 		wbinimg src:spark/ipl10.bin len:512 from:0 to:0 \
 		copy from:spark/haribote.sys to:@: \
@@ -51,6 +52,7 @@ spark.img : spark/ipl10.bin spark/haribote.sys Makefile \
 		copy from:color2/color2.hrb to:@: \
 		copy from:sosu/sosu.hrb to:@: \
 		copy from:sosu2/sosu2.hrb to:@: \
+		copy from:cat/cat.hrb to:@: \
 		imgout:spark.img
 
 # 其他指令
@@ -73,6 +75,7 @@ full :
 	$(MAKE) -C a
 	$(MAKE) -C sosu
 	$(MAKE) -C sosu2
+	$(MAKE) -C cat
 	$(MAKE) -C hello3
 	$(MAKE) -C hello4
 	$(MAKE) -C hello5
@@ -124,6 +127,7 @@ clean_full :
 	$(MAKE) -C color2		clean
 	$(MAKE) -C sosu			clean
 	$(MAKE) -C sosu2		clean
+	$(MAKE) -C cat			clean
 
 src_only_full :
 	$(MAKE) -C spark		src_only
@@ -143,8 +147,9 @@ src_only_full :
 	$(MAKE) -C beepdown		src_only
 	$(MAKE) -C color		src_only
 	$(MAKE) -C color2		src_only
-	$(MAKE) -C sosu
-	$(MAKE) -C sosu2
+	$(MAKE) -C sosu			src_only
+	$(MAKE) -C sosu2		src_only
+	$(MAKE) -C cat			src_only
 	-$(DEL) spark.img
 
 refresh :
