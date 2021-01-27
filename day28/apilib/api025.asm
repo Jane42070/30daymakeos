@@ -3,7 +3,7 @@
 [BITS 32]
 [FILE "api025.asm"]
 
-		GLOBAL	_api_fread
+		GLOBAL _api_fread
 
 [SECTION .text]
 _api_fread:				; int api_fread(char *buf, int maxsize, int fhandle);
