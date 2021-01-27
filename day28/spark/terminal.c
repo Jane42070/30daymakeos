@@ -21,6 +21,12 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	term.cur_y = 28;
 	term.cur_c = -1;
 	task->term = &term;
+	struct FILEHANDLE fhandle[8];
+	for (i = 0; i < 8; i++) {
+		fhandle[i].buf = 0;// 未使用标记
+	}
+	task->fhandle = fhandle;
+	task->fat = fat;
 
 	if (term.sht != 0) {
 		term.timer = timer_alloc();
@@ -444,6 +450,12 @@ int cmd_app(struct TERM *term, int *fat, char *cmdline)
 				// 如果是应用程序遗留的窗口
 				if ((sht->flags & 0x11) == 0x11 && sht->task == task) sheet_free(sht);
 			}
+			for (i = 0; i < 8; i++) {// 将未关闭的文件关闭
+				if (task->fhandle[i].buf != 0) {
+					memman_free_4k(memman, (int) task->fhandle[i].buf, task->fhandle[i].size);
+					task->fhandle[i].buf = 0;
+				}
+			}
 			timer_cancelall(&task->fifo);
 			memman_free_4k(memman, (int) q, segsiz);
 		}
@@ -464,6 +476,9 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 	struct FIFO32 *sys_info = (struct FIFO32 *) *((int *) 0x0fec);
 	struct SHEET *sht;
+	struct FILEINFO *finfo;
+	struct FILEHANDLE *fh;
+	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	int *reg = &eax + 1, i;	// eax 后面的地址
 	/* 强行改写通过 PUSHAD 保存的值
 	 * reg[0] : EDI,	reg[1] : ESI,	reg[2] : EBP,	reg[3] : ESP
@@ -598,6 +613,63 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 					i = io_in8(0x61);
 					io_out8(0x61, (i | 0x03) & 0x0f);
 				}
+				break;
+			case 21:
+				for (i = 0; i < 8; i++) {
+					if (task->fhandle[i].buf == 0) break;
+				}
+				fh = &task->fhandle[i];
+				reg[7] = 0;
+				if (i < 8) {
+					finfo = file_search((char *) ebx + ds_base, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
+					if (finfo != 0) {
+						reg[7] = (int) fh;
+						fh->buf = (char *) memman_alloc_4k(memman, fh->size);
+						fh->size = finfo->size;
+						fh->pos = 0;
+						file_loadfile(finfo->clustno, finfo->size, fh->buf, task->fat, (char *) (ADR_DISKIMG + 0x003e00));
+					}
+				}
+				break;
+			case 22:
+				fh = (struct FILEHANDLE *) eax;
+				memman_free_4k(memman, (int) fh->buf, fh->size);
+				fh->buf = 0;
+				break;
+			case 23:
+				fh = (struct FILEHANDLE *) eax;
+				if (ecx == 0) {
+					fh->pos = ebx;
+				} else if (ecx == 1) {
+					fh->pos += ebx;
+				} else if (ecx == 2) {
+					fh->pos = fh->size + ebx;
+				}
+				if (fh->pos < 0) {
+					fh->pos = 0;
+				}
+				if (fh->pos > fh->size) {
+					fh->pos = fh->size;
+				}
+				break;
+			case 24:
+				fh = (struct FILEHANDLE *) eax;
+				if (ecx == 0) {
+					reg[7] = fh->size;
+				} else if (ecx == 1) {
+					reg[7] = fh->pos;
+				} else if (ecx == 2) {
+					reg[7] = fh->pos - fh->size;
+				}
+				break;
+			case 25:
+				fh = (struct FILEHANDLE *) eax;
+				for (i = 0; i < ecx; i++) {
+					if (fh->pos == fh->size) break;
+					*((char *) ebx + ds_base + i) = fh->buf[fh->pos];
+					fh->pos++;
+				}
+				reg[7] = i;
 				break;
 	}
 	return 0;
