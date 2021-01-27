@@ -1686,6 +1686,93 @@ start_app(0x1b, 0 * 8 + 4, esp, 1 * 8 + 4, &(task->tss.esp0));
 - 整理了 Make 环境
 
 ### day28 文件操作与文字显示
+- 写一个输出质数的应用程序，当输出的质数在 10000 以内的时候会因为栈空间不足而运行异常，所以需要写一个自动分配空间的功能
+```c
+#include <stdio.h>
+#include "../apilib.h"
+
+#define MAX 10000
+
+void HariMain()
+{
+	char *flag, s[8];
+	int i, j;
+	api_initmalloc();
+	flag = api_malloc(MAX);
+	for (i = 2; i < MAX; i++) {
+		if (flag[i] == 0) {
+			sprintf(s, "%d ", i);
+			api_putstr(s);
+			for (j = i * 2; j < MAX; j += i) {
+				flag[j] = 1;
+			}
+		}
+	}
+	api_end();
+}
+```
+```nasm
+; __alloca 会在下述情况下被 c 语言调用（采用 near-CALL 的方式）
+; 要执行的操作从栈中分配 EAX 个字节的内存空间（ESP -= EAX; ）
+; 要遵守的规则不能改变 ECX、EDX、EBX、EBP、ESI、EDI 的值（可以临时改变，但要使用 PUSH 或 POP 复原）
+; 错误的 alloca 示例
+SUB    ESP,EAX
+RET
+; 这个程序是无法运行的，因为 RET 返回的地址保存在了 ESP 中，而 ESP 的值在这里被改变了
+; 于是读取了错误的返回地址
+; 错误的 alloca 示例 2
+SUB    ESP,EAX
+JMP    DWORD [ESP+EAX]    ; 代替 RET
+; 这个貌似不错，JMP 的目标地址从 [ESP] 变成了 [ESP+EAX]，而 ESP+EAX 的值正好是减法运算之前的 ESP 值
+; 不过这样还是有问题，“RET” 指令相当于 “POP EIP”，而 “POP EIP” 实际上又相当于下面两条指令
+MOV    EIP,[ESP]    ; 没有这个指令，用 JMP [ESP] 代替
+ADD    ESP,4
+; 也就是说，刚刚忘记给 ESP 加上 4，因此 ESP 的值就有了误差
+; 错误的 alloca 示例 3
+SUB    ESP,EAX
+JMP    DWORD [ESP+EAX]
+ADD    ESP,4
+; 这个程序的问题在于 ADD 指令的位置，将 ADD 指令放在了 JMP 指令的后面，所以是不可能被执行的
+; 基本正确的 alloca 示例
+SUB    ESP,EAX
+ADD    ESP,4
+JMP    DWORD [ESP+EAX-4]    ; 代替 RET
+; 最后的版本
+ADD    EAX,-4
+SUB    ESP,EAX
+JMP    DWORD [ESP+EAX]    ; 代替 RET
+```
+
+![sosu2](./day28/sosu2.png)
+
+- 将 winhelo 程序也在栈中分配空间
+
+```c
+#include "../apilib.h"
+
+void HariMain()
+{
+	int win;
+	char buf[150 * 50];
+	win = api_openwin(buf, 150, 50, -1, "Hello");
+	for (;;) {
+		if (api_getkey(1) == 0x1c) break;
+	}
+	api_end();
+}
+// Makefile
+APP    = winhelo
+STACK  = 8k
+MALLOC = 0k
+
+include ../app_make.txt
+```
+- winhelo 程序从 7764 字节变为 174 字节
+- 同时也修改 winhelo2
+
+![winhelo](./day28/winhelos.png)
+
+
 
 ## TODO
 ### 终端
