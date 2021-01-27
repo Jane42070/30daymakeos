@@ -303,6 +303,14 @@ struct TASK {
 	struct SEGMENT_DESCRIPTOR ldt[2];
 	struct TERM *term;
 	int ds_base, term_stack;
+	struct FILEHANDLE *fhandle;
+	int *fat;
+};
+
+struct FILEHANDLE {
+	char *buf;
+	int size;
+	int pos;
 };
 
 struct TASKLEVEL {
