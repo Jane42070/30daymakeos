@@ -16,17 +16,18 @@ void term_task(struct SHEET *sheet, unsigned int memtotal)
 	int i, *fat = (int *) memman_alloc_4k(memman, 4 * 2880);
 	struct TERM term;
 	char cmdline[30] = {0};
-	term.sht   = sheet;
-	term.cur_x = 8;
-	term.cur_y = 28;
-	term.cur_c = -1;
-	task->term = &term;
 	struct FILEHANDLE fhandle[8];
 	for (i = 0; i < 8; i++) {
 		fhandle[i].buf = 0;// 未使用标记
 	}
+	term.sht      = sheet;
+	term.cur_x    = 8;
+	term.cur_y    = 28;
+	term.cur_c    = -1;
+	task->term    = &term;
+	task->cmdline = cmdline;
 	task->fhandle = fhandle;
-	task->fat = fat;
+	task->fat     = fat;
 
 	if (term.sht != 0) {
 		term.timer = timer_alloc();
@@ -214,8 +215,6 @@ void term_runcmd(char *cmdline, struct TERM *term, int *fat, unsigned int memtot
 		cmd_uname(term, cmdline);
 	} else if (strcmp(cmdline, "exit") == 0) {
 		cmd_exit(term, fat);
-	} else if (strncmp(cmdline, "cat", 3) == 0) {
-		cmd_cat(term, fat, cmdline);
 	} else if (strncmp(cmdline, "echo ", 5) == 0) {
 		cmd_echo(term, cmdline + 5);
 	} else if (strncmp(cmdline, "start ", 6) == 0) {
@@ -295,26 +294,6 @@ void cmd_ls(struct TERM *term)
 				term_putstr(term, s);
 			}
 		}
-	}
-}
-
-// cat 命令
-void cmd_cat(struct TERM *term, int *fat, char *cmdline)
-{
-	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
-	struct FILEINFO *finfo = file_search(cmdline + 4, (struct FILEINFO *) (ADR_DISKIMG + 0x002600), 224);
-	char *p;
-	int i;
-	if (finfo != 0) {// 找到文件
-		p = (char *) memman_alloc_4k(memman, finfo->size);
-		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *) (ADR_DISKIMG + 0x003e00));
-		for (i = 0; i < finfo->size; i++) term_putchar(term, p[i], 1);
-		memman_free_4k(memman, (int) p, finfo->size);
-		term_newline(term);
-	} else {// 没有找到文件
-		char *s = 0;
-		sprintf(s, "No such file or directory: %s\n", cmdline + 4);
-		term_putstr(term, s);
 	}
 }
 
@@ -668,6 +647,16 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 					if (fh->pos == fh->size) break;
 					*((char *) ebx + ds_base + i) = fh->buf[fh->pos];
 					fh->pos++;
+				}
+				reg[7] = i;
+				break;
+			case 26:
+				i = 0;
+				for (;;) {
+					*((char *) ebx + ds_base + i) = task->cmdline[i];
+					if (task->cmdline[i] == 0) break;
+					if (i >= ecx) break;
+					i++;
 				}
 				reg[7] = i;
 				break;
